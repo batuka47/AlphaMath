@@ -409,6 +409,223 @@ function Task() {
             ]
         },
         {
+            id: "17",
+            variant: "A",
+            problem: [
+                {
+                    id: "1",
+                    text: `Утгыг олоорой. <math className="font-semibold text-xl"><msqrt><mrow><mn>1</mn><mfrac><mn>64</mn><mn>225</mn></mfrac></mrow></msqrt><mo>=</mo></math>`,
+                    labelA: `<math className="font-semibold text-xl"><mrow><mn>1</mn><mfrac><mn>2</mn><mn>15</mn></mfrac></mrow></math>`,
+                    labelB: `<math className="font-semibold text-xl"><mrow><mn>1</mn><mfrac><mn>8</mn><mn>15</mn></mfrac></mrow></math>`,
+                    labelC: `<math className="font-semibold text-xl"><mrow><mfrac><mn>8</mn><mn>15</mn></mfrac></mrow></math>`,
+                    labelD: `<math className="font-semibold text-xl"><mrow><mn>1</mn><mfrac><mn>8</mn><mn>25</mn></mfrac></mrow></math>`,
+                    labelE: `<math className="font-semibold text-xl"><mrow><mn>1</mn><mfrac><mn>4</mn><mn>25</mn></mfrac></mrow></math>`,
+                    answer: "A"
+                },
+                {
+                    id: "2",
+                    text: "𝑀(4, 3) цэгээс 𝑂𝑥 тэнхлэг хүртэлх зайг олоорой.",
+                    labelA: "7",
+                    labelB: "4",
+                    labelC: "5",
+                    labelD: "3",
+                    labelE: "4.5",
+                    answer: "D"
+                },
+                {
+                    id: "3",
+                    text: "",
+                    labelA: "",
+                    labelB: "",
+                    labelC: "",
+                    labelD: "",
+                    labelE: "",
+                    answer: ""
+                },
+                {
+                    id: "4",
+                    text: "𝐴 = { 1, 2, 3, 4, 5, 6 } олонлогийн дэд олонлогийг олоорой.",
+                    labelA: "{ 4, 6, 0 } ",
+                    labelB: ".{ 2, 4, 7 } ",
+                    labelC: "{ 1, 4, 6 }",
+                    labelD: "{ 6, 7 }",
+                    labelE: "{1, 2, 1.5}",
+                    answer: "C"
+                },
+                {
+                    id: "5",
+                    text: `Хялбарчил.  <math className="font-semibold text-xl ml-2"><mrow><mo stretchy="false" form="prefix">(</mo><mn>3</mn><mo>+</mo><mi>i</mi><msup><mo stretchy="false" form="postfix">)</mo><mn>2</mn></msup></mrow><mo>=</mo></math>` ,
+                    labelA: "9+6i",
+                    labelB: "8+6i",
+                    labelC: "10+6i",
+                    labelD: "8",
+                    labelE: "10",
+                    answer: "B"
+                },
+                {
+                    id: "6",
+                    text: "𝑋 санамсаргүй хувьсагчийн магадлалын тархалтыг өгөв. 𝑎 тоог олоорой. ",
+                    labelA: `<math className="font-semibold text-xl"><mrow><mfrac><mn>5</mn><mn>6</mn></mfrac></mrow></math>`,
+                    labelB: `<math className="font-semibold text-xl"><mrow><mfrac><mn>2</mn><mn>3</mn></mfrac></mrow></math>`,
+                    labelC: `<math className="font-semibold text-xl"><mrow><mfrac><mn>1</mn><mn>6</mn></mfrac></mrow></math>`,
+                    labelD: `<math className="font-semibold text-xl"><mrow><mfrac><mn>1</mn><mn>2</mn></mfrac></mrow></math>`,
+                    labelE: `<math className="font-semibold text-xl"><mrow><mfrac><mn>1</mn><mn>3</mn></mfrac></mrow></math>`,
+                    answer: "D"
+                },
+                {
+                    id: "7",
+                    text: "𝑦 = 2𝑥 − 1 функцийн өсөх завсрыг олоорой.",
+                    labelA: "(0; 2)",
+                    labelB: `(2; + <math className="font-semibold text-xl mt-1"><mi>∞</mi></math>)`,
+                    labelC: `(<math className="font-semibold text-xl"><mrow><mfrac><mn>1</mn><mn>2</mn></mfrac></mrow></math> ; + <math className="font-semibold text-xl mt-1"><mi>∞</mi></math>) `,
+                    labelD: `( - <math className="font-semibold text-xl mt-1"><mi>∞</mi></math> ; <math className="font-semibold text-xl"><mrow><mfrac><mn>1</mn><mn>2</mn></mfrac></mrow></math>) `,
+                    labelE: `(- <math className="font-semibold text-xl mt-1"><mi>∞</mi></math> ; + <math className="font-semibold text-xl mt-1"><mi>∞</mi></math>)`,
+                    answer: "E"
+                },
+                { 
+                    id: "8",
+                    text: ` 𝐴𝐵 диаметр ба <math className="font-semibold text-xl mx-2"><mrow><mi>∠</mi><mi>B</mi><mi>A</mi><mi>C</mi><mo>=</mo><msup><mn>58</mn><mo>∘</mo></msup></mrow></math> бол <math className="font-semibold text-xl ml-2"><mrow><mi>∠</mi><mi>A</mi><mi>B</mi><mi>C</mi><mo>=</mo></mrow></math> ? `,
+                    labelA: `<math className="font-semibold text-xl"><msup><mn>58</mn><mo>∘</mo></msup></mrow></math>`,
+                    labelB: `<math className="font-semibold text-xl"><msup><mn>29</mn><mo>∘</mo></msup></mrow></math>`,
+                    labelC: `<math className="font-semibold text-xl"><msup><mn>32</mn><mo>∘</mo></msup></mrow></math>`,
+                    labelD: `<math className="font-semibold text-xl"><msup><mn>42</mn><mo>∘</mo></msup></mrow></math>`,
+                    labelE: `<math className="font-semibold text-xl"><msup><mn>90</mn><mo>∘</mo></msup></mrow></math>`,
+                    answer: "C"
+                },
+                {
+                    id: "9",
+                    text: "10, 2, 4, 6, 1, 12, 14, 8, 16 өгөгдлийн дээд квартилийг олоорой. ",
+                    labelA: "12",
+                    labelB: "15",
+                    labelC: "8",
+                    labelD: "13",
+                    labelE: "3",
+                    answer: "D"
+                },
+                {
+                    id: "10",
+                    text: `Тэнцэтгэл бишийг бодоорой. <math className="font-semibold text-xl mt-1 ml-2"><mrow><msub><mi>log</mi><mo>&#8289;</mo><mn>2</mn></msub><mn>(x-1)</mn></mrow></math> < 3`,
+                    labelA: "",
+                    labelB: "",
+                    labelC: "",
+                    labelD: "",
+                    labelE: "",
+                    answer: "A"
+                },
+                {
+                    id: "11",
+                    text: "200 + 201 + ⋯ + 215 − (185 + 186 + ⋯ + 200) =",
+                    labelA: "120",
+                    labelB: "150",
+                    labelC: "450",
+                    labelD: "240",
+                    labelE: "180",
+                    answer: "D"
+                },
+                {
+                    id: "12",
+                    text: "𝛼 = 150 бол 𝑡𝑔3𝛼 + sin 2𝛼 = ",
+                    labelA: `<math className="font-semibold text-xl"><mrow><mfrac><mn>1</mn><mn>2</mn></mfrac></mrow></math>`,
+                    labelB: `<math className="font-semibold text-xl "><mfrac><mrow><mn>1</mn><mo>+</mo><msqrt><mn>3</mn></msqrt></mrow><mn>2</mn></mfrac></math>`,
+                    labelC: `<math className="font-semibold text-xl"><mrow><mfrac><mn>3</mn><mn>2</mn></mfrac></mrow></math>`,
+                    labelD: `<math className="font-semibold text-xl "><mfrac><mrow><mn>2</mn><msqrt><mn>3</mn></msqrt><mo>+</mo><mn>1</mn></mrow><mn>2</mn></mfrac></math>`,
+                    labelE: `<math className="font-semibold text-xl "><mfrac><mrow><mn>3</mn><msqrt><mn>3</mn></msqrt></mrow><mn>2</mn></mfrac></math>`,
+                    answer: "C"
+                },
+                {
+                    id: "13",
+                    text: "𝐴(−1, −1) цэгийг 𝑀(2, 𝑏) цэгийн хувьд тэгш хэмтэйгээр хувиргахад гарах цэг 𝐵(𝑎, 3) бол 𝑎 тоог олоорой.",
+                    labelA: "6",
+                    labelB: "5",
+                    labelC: "4",
+                    labelD: "3",
+                    labelE: "7",
+                    answer: "D"
+                },
+                {
+                    id: "14",
+                    text: `𝑥 = 10, 𝑦 = 1 үед илэрхийллийн утгыг ол. <math className="font-semibold text-xl ml-3"><mfrac><mrow><mn>5</mn><mi>x</mi><mo>−</mo><mn>5</mn><mi>y</mi></mrow><mrow><msup><mi>x</mi><mn>2</mn></msup><mo>+</mo><mn>4</mn><mi>x</mi><mi>y</mi><mo>−</mo><mn>5</mn><mi>x</mi><msup><mi>y</mi><mn>2</mn></msup></mrow></mfrac></math>  `,
+                    labelA: `<math className="font-semibold text-xl"><mrow><mfrac><mn>1</mn><mn>10</mn></mfrac></mrow></math>`,
+                    labelB: `<math className="font-semibold text-xl"><mrow><mfrac><mn>1</mn><mn>5</mn></mfrac></mrow></math>`,
+                    labelC: `<math className="font-semibold text-xl"><mrow><mfrac><mn>1</mn><mn>3</mn></mfrac></mrow></math>`,
+                    labelD: "1",
+                    labelE: `<math className="font-semibold text-xl"><mrow><mfrac><mn>1</mn><mn>2</mn></mfrac></mrow></math>`,
+                    answer: "C"
+                },
+                { 
+                    id: "15",
+                    text: `<math className="font-semibold text-xl mr-2"><mrow><mi>y</mi><mo>=</mo><msup><mi>e</mi><mrow><mi>−</mi><mn>3</mn><mi>x</mi></mrow></msup></mrow></math> функцийн 2-р эрэмбийн уламжлалыг олоорой.` ,
+                    labelA: `<math className="font-semibold text-xl mr-2"><mrow><msup><mi>-3e</mi><mrow><mi>−</mi><mn>3</mn><mi>x</mi></mrow></msup></mrow></math>` ,
+                    labelB: `<math className="font-semibold text-xl mr-2"><mrow><msup><mi>-9e</mi><mrow><mi>−</mi><mn>3</mn><mi>x</mi></mrow></msup></mrow></math>`,
+                    labelC: `<math className="font-semibold text-xl mr-2"><mrow><msup><mi>e</mi><mrow><mi>−</mi><mn>3</mn><mi>x</mi></mrow></msup></mrow></math>`,
+                    labelD: `<math className="font-semibold text-xl mr-2"><mrow><msup><mi>9e</mi><mrow><mi>−</mi><mn>3</mn><mi>x</mi></mrow></msup></mrow></math>`,
+                    labelE: `<math className="font-semibold text-xl mr-2"><mrow><msup><mi>3e</mi><mrow><mi>−</mi><mn>3</mn><mi>x</mi></mrow></msup></mrow></math>`,
+                    answer: "D"
+                },
+                {
+                    id: "16",
+                    text: "Шоог орхиход тэгш тоогоор эсвэл 4 −ийн хуваагч тоогоор буух магадлалыг олоорой. ",
+                    labelA: `<math className="font-semibold text-xl"><mrow><mfrac><mn>2</mn><mn>3</mn></mfrac></mrow></math>`,
+                    labelB: `<math className="font-semibold text-xl"><mrow><mfrac><mn>5</mn><mn>6</mn></mfrac></mrow></math>`,
+                    labelC: `<math className="font-semibold text-xl"><mrow><mfrac><mn>1</mn><mn>2</mn></mfrac></mrow></math>`,
+                    labelD: `<math className="font-semibold text-xl"><mrow><mfrac><mn>1</mn><mn>3</mn></mfrac></mrow></math>`,
+                    labelE: `<math className="font-semibold text-xl"><mrow><mfrac><mn>1</mn><mn>6</mn></mfrac></mrow></math>`,
+                    answer: "A"
+                },
+                {
+                    id: "17",
+                    text: "𝑎⃗ = (𝑥, −1, 2) векторын урт 5 бол 𝑥 =? ",
+                    labelA:  `<math className="font-semibold text-xl "><mrow><mo>±</mo><msqrt><mn>22</mn></msqrt></math>`,
+                    labelB: `<math className="font-semibold text-xl "><mrow><msqrt><mn>22</mn></msqrt></math>`,
+                    labelC: `<math className="font-semibold text-xl "><mrow><mn>2</mn><msqrt><mn>5</mn></msqrt></math>`,
+                    labelD: "4",
+                    labelE: `<math className="font-semibold text-xl "><mrow><mo>±</mo><mn>2</mn><msqrt><mn>5</mn></msqrt></math>`,
+                    answer: "E"
+                },
+                {
+                    id: "3",
+                    text: "",
+                    labelA: "",
+                    labelB: "",
+                    labelC: "",
+                    labelD: "",
+                    labelE: "",
+                    answer: ""
+                },
+                {
+                    id: "3",
+                    text: "",
+                    labelA: "",
+                    labelB: "",
+                    labelC: "",
+                    labelD: "",
+                    labelE: "",
+                    answer: ""
+                },
+                {
+                    id: "3",
+                    text: "",
+                    labelA: "",
+                    labelB: "",
+                    labelC: "",
+                    labelD: "",
+                    labelE: "",
+                    answer: ""
+                },
+                {
+                    id: "3",
+                    text: "",
+                    labelA: "",
+                    labelB: "",
+                    labelC: "",
+                    labelD: "",
+                    labelE: "",
+                    answer: ""
+                },
+
+            ]
+        },
+        {
             id: "18",
             variant: "A",
             problem: [
