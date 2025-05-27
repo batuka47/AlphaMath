@@ -19,7 +19,7 @@ function Home() {
   return (
     <div>
         <Header />
-        <div className='w-full flex flex-row items-center h-[600px] bg-[#F5DAC6] '>
+        <div className='w-full flex flex-row items-center h-screen bg-[#F5DAC6] '>
           <div className=' w-1/2 flex flex-col justify-center ml-20 gap-4'>
             <h1 className='text-4xl relative font-extrabold'>Таны Академик 
               <img src={spark} alt="spark" className='absolute -left-16  -top-14' />

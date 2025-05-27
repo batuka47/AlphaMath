@@ -1,13 +1,29 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import RadioButton from './RadioBtn'
 import parse from 'html-react-parser';
 
 function Test(props) {
     const [selectedValue, setSelectedValue] = useState(props.selectedAnswer || '');
+    const [isImageWide, setIsImageWide] = useState(false);
+    const imageRef = useRef(null);
 
     useEffect(() => {
         setSelectedValue(props.selectedAnswer || '');
     }, [props.selectedAnswer]);
+
+    useEffect(() => {
+        const checkImageWidth = () => {
+            if (imageRef.current) {
+                const imageWidth = imageRef.current.offsetWidth;
+                const screenWidth = window.innerWidth;
+                setIsImageWide(imageWidth > screenWidth / 3);
+            }
+        };
+
+        checkImageWidth();
+        window.addEventListener('resize', checkImageWidth);
+        return () => window.removeEventListener('resize', checkImageWidth);
+    }, [props.img]);
 
     const handleChange = (event) => {
         const newValue = event.target.value;
@@ -41,7 +57,12 @@ function Test(props) {
                     {parseWithKeys(props.text, 'text')}
                 </div>
             </div>
-            <img src={props.img} className='absolute right-2 -top-4 scale-75' alt="" />
+            <img 
+                ref={imageRef}
+                src={props.img} 
+                className={`${isImageWide ? ' w-full scale-[60%] -ml-56' : 'absolute right-2 -top-4 scale-75'}`} 
+                alt="" 
+            />
             
             <div className="p-4 w-2/3">
                 <RadioButton
