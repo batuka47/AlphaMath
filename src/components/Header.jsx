@@ -19,7 +19,7 @@ function Header() {
         },
         {
           name: 'Заавар',
-          link: '/EYSH'
+          link: '/EYSHadvice'
         },
         {
           name: 'Тест өгөх',
@@ -33,11 +33,11 @@ function Header() {
       links: [
         {
           name: 'Шалгалтын талаар',
-          link: '/EYSH'
+          link: '/SATstatistic'
         },
         {
           name: 'Заавар',
-          link: '/EYSH'
+          link: '/SATstrategy'
         },
         {
           name: 'Тест өгөх',
@@ -125,12 +125,12 @@ function Header() {
           </div>
         </div>
         {isOpen && (
-                    <div className={`absolute w-full bg-[#F5DAC6] top-16 left-0 shadow-lg rounded-b-lg p-4 justify-center flex flex-row gap-4 z-20 transition-opacity duration-300 ease-in-out transform ${isOpen ? 'scale-y-100 translate-y-0 opacity-100' : 'scale-y-95 -translate-y-4 opacity-0'}`}> 
+                    <div className={`absolute w-full bg-[#F5DAC6] top-16 left-0 shadow-lg rounded-b-lg p-4 justify-center flex sm:flex-row flex-col gap-4 z-20 transition-opacity duration-300 ease-in-out transform ${isOpen ? 'scale-y-100 translate-y-0 opacity-100' : 'scale-y-95 -translate-y-4 opacity-0'}`}> 
                         {
                           navBarData.map((item) => (
-                            <div key={item.name} className='p-2 w-1/5 border-t-4' style={{ borderColor: item.color }}>
+                            <div key={item.name} className='p-2 sm:w-1/5 w-full border-t-4' style={{ borderColor: item.color }}>
                               <h3 className='font-extrabold text-lg my-2'>{item.name}</h3>
-                              <ul className='ml-4'>
+                              <ul className='sm:ml-4 '>
                                 {item.links.map((link) => (
                                   <li key={link.name}>
                                     <Link to={link.link}>{link.name}</Link>

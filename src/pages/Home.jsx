@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 
@@ -19,98 +20,97 @@ function Home() {
   return (
     <div>
         <Header />
-        <div className='w-full flex flex-row items-center h-screen bg-[#F5DAC6] '>
-          <div className=' w-1/2 flex flex-col justify-center ml-20 gap-4'>
-            <h1 className='text-4xl relative font-extrabold'>Таны Академик 
-              <img src={spark} alt="spark" className='absolute -left-16  -top-14' />
+        <div className='w-full flex sm:flex-row flex-col items-center sm:h-screen h-[80vh] bg-[#F5DAC6] '>
+          <div className='pt-40 sm:pt-0 sm:w-1/2 max-w-full flex flex-col justify-center sm:ml-20 ml-30 gap-4'>
+            <h1 className='sm:text-4xl text-2xl relative font-extrabold'>Таны Академик 
+              <img src={spark} alt="spark" className='absolute sm:-left-16 -left-11   -top-14 ' />
               <br /><span className='text-[#E75234]'>Амжилтын Гараа</span> эндээс...
             </h1>
-            <p className='text-xl font-bold'>SAT, ЭЕШ шалгалтуудын бэлтгэл болон Онолын <br/> Математик цөм бүрэн</p>
+            <p className='sm:text-xl text-xs font-bold'>SAT, ЭЕШ шалгалтуудын бэлтгэл болон Онолын <br/> Математик цөм бүрэн</p>
             <div className='text-white rounded-lg bg-[#E75234] flex justify-center items-center w-32 h-12'>Эхлэх</div>
           </div>
-          <div className=' w-1/2 flex flex-col justify-center items-center relative'>
-            <img src={welcome} alt="welcome" className='w-10/12 mr-5' />
-            <img src={alphacon} alt="alphacon" className='absolute scale-75 -bottom-16 -left-16' style={{ animation: 'spin 10s linear infinite' }} />
+          <div className=' sm:w-1/2 w-full flex flex-col justify-center items-center relative'>
+            <img src={welcome} alt="welcome" className='sm:w-10/12 w-8/12 sm:mr-5 pt-10' />
+            <img src={alphacon} alt="alphacon" className='absolute sm:scale-75 scale-45 sm:-bottom-16 -bottom-20 sm:-left-16 -left-4 animate-spin-slow' />
           </div>
         </div>
 
         <div>
-          <h1 className='text-4xl font-extrabold w-full px-16 mt-20'>Цэс сонгох</h1>
-          <div className='grid grid-cols-3 gap-4 px-16 mt-10'>
-            <div className='w-full flex flex-col justify-between relative bg-[#96add6b2] h-56  p-4 rounded-3xl'>
-              <div className='w-16 h-16 rounded-full flex justify-center items-center bg-[#2760A6]'>
-                <img src={arrowTR} alt="arrowTR" className='scale-75' />
+          <h1 className='sm:text-4xl text-2xl font-extrabold w-full sm:px-16 px-6 mt-20'>Цэс сонгох</h1>
+          <div className='grid sm:grid-cols-3 grid-cols-1 gap-4 sm:px-16 px-6 mt-10'>
+            <Link to={'/EYSHadvice'}>
+              <div className='w-full flex flex-col justify-between relative bg-[#96add6b2] sm:h-56  h-35 p-4 sm:rounded-3xl rounded-xl'>
+                <div className='w-16 h-16 rounded-full hidden sm:flex justify-center items-center bg-[#2760A6]'>
+                  <img src={arrowTR} alt="arrowTR" className='scale-75' />
+                </div>
+                <div className='flex flex-col gap-2'>
+                  <h1 className='font-bold text-xl'>ЭЕШ</h1>
+                  <p className='text-[13px] sm:w-64 w-56 '>Lorem ipsum dolor sit amet, 
+                  consectetur adipiscing elit. Sed skdfni oisfnwein</p>
+                </div>
+                <img src={yesh} alt="yesh" className='sm:scale-75 scale-50 absolute sm:-top-2 -top-9 sm:-right-2 -right-9' />
               </div>
-              <div className='flex flex-col gap-2'>
-                <h1 className='font-bold text-xl'>ЭЕШ</h1>
-                <p className='text-[13px] w-64 '>Lorem ipsum dolor sit amet, 
-                consectetur adipiscing elit. Sed skdfni oisfnwein</p>
-              </div>
-                <img src={yesh} alt="yesh" className='scale-75 absolute -top-2 -right-2' />
-            </div>
-            <div className='w-full flex flex-col justify-between relative bg-[#F8B8AFb2] h-56  p-4 rounded-3xl'>
+            </Link>
+            <div className='w-full flex flex-col justify-between relative bg-[#F8B8AFb2] sm:h-56 h-35  p-4 sm:rounded-3xl rounded-xl'>
               <div className='flex flex-col gap-2'>
                 <h1 className='font-bold text-xl'>SAT</h1>
-                <p className='text-[13px] w-64 '>Lorem ipsum dolor sit amet, 
+                <p className='text-[13px] sm:w-64 w-56 '>Lorem ipsum dolor sit amet, 
                 consectetur adipiscing elit. Sed skdfni oisfnwein</p>
               </div>
-              <div className='w-16 h-16 rounded-full flex justify-center items-center bg-[#E7836F]'>
+              <div className='w-16 h-16 rounded-full hidden sm:flex justify-center items-center bg-[#E7836F]'>
                 <img src={arrowTR} alt="arrowTR" className='scale-75' />
               </div>
-                <img src={sat} alt="yesh" className='scale-75 absolute -bottom-2 -right-2' />
+                <img src={sat} alt="yesh" className='sm:scale-75 scale-50 absolute sm:-bottom-2 -bottom-4 sm:-right-2 -right-8' />
             </div>
-            <div className='w-full flex flex-col justify-between relative bg-[#C9CFD1b2] h-56  p-4 rounded-3xl'>
-              <div className='w-16 h-16 rounded-full flex justify-center items-center bg-[#2760A6]'>
-                <img src={arrowTR} alt="arrowTR" className='scale-75' />
+            <div className='w-full flex flex-col justify-between relative bg-[#C9CFD1b2] sm:h-56 h-40  p-4 sm:rounded-3xl rounded-xl'>
+              <div className='w-16 h-16 rounded-full hidden sm:flex justify-center items-center bg-[#2760A6]'>
+                <img src={arrowTR} alt="arrowTR" className='sm:scale-75 scale-60' />
               </div>
               <div className='flex flex-col gap-2'>
                 <h1 className='font-bold text-xl w-16'>Онолын математик</h1>
-                <p className='text-[13px] w-64 '>Lorem ipsum dolor sit amet, 
+                <p className='text-[13px] sm:w-64 w-56'>Lorem ipsum dolor sit amet, 
                 consectetur adipiscing elit. Sed skdfni oisfnwein</p>
               </div>
-                <img src={onol} alt="yesh" className='scale-75 absolute -top-2 -right-2' />
+                <img src={onol} alt="yesh" className='sm:scale-75 scale-50 absolute sm:-top-2 -top-7 sm:-right-2 -right-8' />
             </div>
           </div>
         </div>
         
         <div className='mb-32'>
-          <h1 className='text-4xl font-extrabold w-full px-16 mt-20'>Зөвлөгөө</h1>
+          <h1 className='sm:text-4xl text-2xl font-extrabold w-full sm:px-16 px-6 mt-20'>Зөвлөгөө</h1>
 
-          <div className='grid grid-cols-3 gap-4 px-16 mt-10'>
-            <div className='w-full flex flex-col border-1 border-[#E7836F] border-solid justify-between relative h-96  p-4 rounded-xl'>
-              <img src={yesh2} alt="yesh"/>
-              <div className='flex flex-row justify-start gap-2 items-center w-full'>
-                <h1 className='w-8 h-4 rounded-sm text-[12px] flex justify-center items-center border-1 border-black border-solid'>ЭЕШ</h1>
-                <div className='w-2 h-2 rounded-full bg-[#2760A6]'></div>
-              </div>
+          <div className='grid sm:grid-cols-3 grid-cols-1 gap-4 sm:px-16 px-6 mt-10'>
+            <div className='w-full flex sm:flex-col flex-row border-1 border-[#E7836F] border-solid sm:justify-between relative sm:h-96 h-40 sm:p-4 rounded-xl'>
+              <img src={yesh2} alt="yesh" className='scale-65 sm:scale-100 rounded-xl'/>
               <div className='flex flex-col gap-2'>
-                <h1 className='font-bold text-xl'>ЭЕШ-д хэрэгтэй зааврууд </h1>
-                <p className='text-[13px] w-64 '>Lorem ipsum dolor sit amet, 
-                consectetur adipiscing elit. Sed skdfni oisfnwein</p>
+              <div className='flex flex-row justify-start sm:gap-2 sm:items-center w-full pt-7'>
+                <h1 className='w-8 h-4 rounded-sm text-[12px] flex justify-center  items-center absolute border-1 border-black border-solid '>ЭЕШ</h1>
+                <div className='w-2 h-2 rounded-full bg-[#2760A6] hidden'></div>
+              </div>
+                <h1 className='font-bold sm:text-xl text-base sm:pt-5 pt-3 w-40 '>ЭЕШ-д хэрэгтэй зааврууд </h1>
+                <p className='sm:text-[13px] text-[11px] sm:w-64  '>Дэлгэрэнгүй үзэх</p>
               </div>
             </div>
-            <div className='w-full flex flex-col justify-between border-1 border-[#E7836F] border-solid h-96  p-4 rounded-xl'>
-              <img src={sat2} alt="yesh" className='' />
-              <div className='flex flex-row justify-start gap-2 items-center w-full'>
-                <h1 className='w-8 h-4 rounded-sm text-[12px] flex justify-center items-center border-1 border-black border-solid'>SAT</h1>
-                <div className='w-2 h-2 rounded-full bg-[#E7836F]'></div>
-              </div>
+            <div className='w-full flex sm:flex-col flex-row border-1 border-[#E7836F] border-solid sm:justify-between relative sm:h-96 h-40 sm:p-4 rounded-xl'>
+              <img src={sat2} alt="yesh" className='scale-65 sm:scale-100 rounded-xl'/>
               <div className='flex flex-col gap-2'>
-                <h1 className='font-bold text-xl'>Шалгалтын талаар</h1>
-                <p className='text-[13px] w-64 '>Lorem ipsum dolor sit amet, 
-                consectetur adipiscing elit. Sed skdfni oisfnwein</p>
+              <div className='flex flex-row justify-start sm:gap-2 sm:items-center w-full pt-7'>
+                <h1 className='w-8 h-4 rounded-sm text-[12px] flex justify-center items-center absolute border-1 border-black border-solid '>SAT</h1>
+                <div className='w-2 h-2 rounded-full bg-[#2760A6] hidden'></div>
+              </div>
+                <h1 className='font-bold sm:text-xl text-base sm:pt-5 pt-3 w-30 '>Шалгалтын талаар</h1>
+                <p className='sm:text-[13px] text-[11px] sm:w-64  '>Дэлгэрэнгүй үзэх</p>
               </div>
             </div>
-            <div className='w-full flex flex-col justify-between border-1 border-[#E7836F] border-solid h-96  p-4 rounded-xl'>
-              <img src={onol2} alt="yesh" className='' />
-              <div className='flex flex-row justify-start gap-2 items-center w-full'>
-                <h1 className='w-8 h-4 rounded-sm text-[12px] flex justify-center items-center border-1 border-black border-solid'>SAT</h1>
-                <div className='w-2 h-2 rounded-full bg-[#E7836F]'></div>
-              </div>
+            <div className='w-full flex sm:flex-col flex-row border-1 border-[#E7836F] border-solid sm:justify-between relative sm:h-96 h-40 sm:p-4 rounded-xl'>
+              <img src={sat2} alt="yesh" className='scale-65 sm:scale-100 rounded-xl'/>
               <div className='flex flex-col gap-2'>
-                <h1 className='font-bold text-xl '>SAT-д туслах стратеги</h1>
-                <p className='text-[13px] w-64 '>Lorem ipsum dolor sit amet, 
-                consectetur adipiscing elit. Sed skdfni oisfnwein</p>
+              <div className='flex flex-row justify-start sm:gap-2 sm:items-center w-full pt-7'>
+                <h1 className='w-8 h-4 rounded-sm text-[12px] flex justify-center items-center absolute border-1 border-black border-solid '>SAT</h1>
+                <div className='w-2 h-2 rounded-full bg-[#2760A6] hidden'></div>
+              </div>
+                <h1 className='font-bold sm:text-xl text-base sm:pt-5 pt-3 sw-40 '>SAT-д туслах стратеги</h1>
+                <p className='sm:text-[13px] text-[11px] sm:w-64  '>Дэлгэрэнгүй үзэх</p>
               </div>
             </div>
           </div>

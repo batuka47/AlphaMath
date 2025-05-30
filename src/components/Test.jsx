@@ -51,20 +51,20 @@ function Test(props) {
 
     return (
         <div className="w-full relative">
-            <div className="font-semibold text-xl mt-8 flex gap-1 w-2/3">
+            <div className="font-semibold sm:text-xl sm:mt-8 mt-4 flex gap-1 sm:w-2/3 w-full">
                 <span>{props.id}.</span>
-                <div className="flex px-4 items-center">
+                <div className="flex sm:px-4 px-2 items-center">
                     {parseWithKeys(props.text, 'text')}
                 </div>
             </div>
             <img 
                 ref={imageRef}
                 src={props.img} 
-                className={`${isImageWide ? ' w-full scale-[60%] -ml-56' : 'absolute right-2 -top-4 scale-75'}`} 
+                className={`${isImageWide ? 'sm:w-full scale-[60%] sm:-ml-56 ml+6 ' : 'absolute sm:right-2 sm:-top-4 scale-75'}`} 
                 alt="" 
             />
             
-            <div className="p-4 w-2/3">
+            <div className="sm:p-4 sm:w-2/3 w-full sm:scale-100 scale-75">
                 <RadioButton
                     key={`${props.id}-A`}
                     label={parseWithKeys(props.labelA, 'A')}

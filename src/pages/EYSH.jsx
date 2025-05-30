@@ -43,12 +43,12 @@ function EYSH(){
     return (
        <div>
         <Header/>
-        <h1 className="text-4xl w-full text-center mb-12 mt-6 font-bold">Элсэлтийн Ерөнхий Шалгалт</h1>
-        <div className='p-10 flex flex-col gap-10'>
+        <h1 className="sm:text-4xl text-3xl w-full text-center mb-12 mt-6 font-bold">Элсэлтийн Ерөнхий Шалгалт</h1>
+        <div className='sm:p-10 flex flex-col gap-10'>
 
-        <h1 className="text-3xl pl-24 font-bold">Он оны ЭЕШ-ийн тестүүд</h1>
+        <h1 className="sm:text-3xl text-2xl sm:pl-24 pl-16 font-bold">Он оны ЭЕШ-ийн тестүүд</h1>
         <div className='flex justify-center items-center'>     
-            <div className="grid grid-cols-3 gap-6 gap-y-5 w-11/12">
+            <div className="grid sm:grid-cols-3 grid-cols-1 gap-6 gap-y-5 w-11/12">
                 {
                     year.map((data)=>{
                         return <MaterialChoose year={data.title} key={data.title}/>
@@ -58,9 +58,9 @@ function EYSH(){
         </div>
         </div>
         <div className='mb-32'>
-          <h1 className='text-4xl font-extrabold w-full px-24 mt-20'>Зөвлөгөө</h1>
+          <h1 className='sm:text-4xl text-3xl font-extrabold w-full sm:px-24 px-35 mt-20'>Зөвлөгөө</h1>
 
-          <div className='grid grid-cols-3 gap-4 px-16 mt-10'>
+          <div className='grid sm:grid-cols-3 grid-row gap-4 px-16 mt-10'>
             <div className='w-full flex flex-col border-1 border-[#E7836F] border-solid justify-between relative h-96  p-4 rounded-xl'>
               <img src={yesh2} alt="yesh"/>
               <div className='flex flex-row justify-start gap-2 items-center w-full'>

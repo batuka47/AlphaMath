@@ -4,7 +4,8 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import Task from '../datas/Task';
 import Test from '../components/Test';
-import back from '../assets/icon/pointdOWN.svg'
+import back from '../assets/icon/pointdOWN.svg';
+import Result from '../pages/Result';
 
 function EYSHTest() {
     const { year } = useParams();
@@ -49,25 +50,25 @@ function EYSHTest() {
         <div>
             <Header />
 
-            <div className="w-full flex flex-col px-20 mt-12">
+            <div className="w-full flex flex-col sm:px-20 px-9 mt-12">
                 <div className="w-full flex flex-col items-center relative">
                     <div className="border-b-4 border-black w-full flex flex-row justify-between">
                         <h1 className="font-bold text-2xl">Хувилбар {year}</h1>
                         <h1 className="font-bold text-2xl">Математик</h1>
                     </div>
-                    <h1 className="font-bold text-2xl mt-8">Нэгдүгээр хэсэг. СОНГОХ ДААЛГАВАР</h1>
-                    <p className="font-semibold text-xl">
-                        <span className="text-red-600">Санамж:</span> Нэгдүгээр хэсгийн 36 сонгох даалгавар нь нийт 72 оноотой. Даалгавар тус
-                        <br /> бүр 5 сонгох хариулттай. Тэдгээрийн зөвхөн нэг зөв хариултыг сонгож, хариултын 
-                        <br /> хуудсанд будаж тэмдэглээрэй. Зураг бодит хэмжээгээр өгөгдөөгүй гэдгийг санаарай.
+                    <h1 className="font-extrabold sm:text-2xl text-xl mt-8">Нэгдүгээр хэсэг. СОНГОХ ДААЛГАВАР</h1>
+                    <p className="font-semibold sm:text-xl ">
+                        <span className="text-red-600">Санамж:</span> Нэгдүгээр хэсгийн 36 сонгох даалгавар нь нийт 72 оноотой. 
+                        <br /> Даалгавар тус бүр 5 сонгох хариулттай. Тэдгээрийн зөвхөн нэг зөв хариултыг сонгож, хариултын 
+                         хуудсанд будаж тэмдэглээрэй. Зураг бодит хэмжээгээр өгөгдөөгүй гэдгийг санаарай.
                     </p>
                     <Link to="/EYSH">
-                        <div className='absolute top-28 left-0'>
-                            <img src={back} alt="back" className='rotate-90 scale-75' />
+                        <div className='absolute sm:top-28 top-2 sm:-left-12 -left-9'>
+                            <img src={back} alt="back" className='rotate-90 sm:scale-75 scale-50' />
                         </div>
                     </Link>
                 </div>
-                <h2 className="font-bold text-xl mt-8">Бодлого 1-ээс 8</h2>
+                <h2 className="font-bold text-xl sm:mt-8 mt-4">Бодлого 1-ээс 8</h2>
                 {tasks.slice(0, 8).map(task => (
                     <Test 
                         key={task.id} 
@@ -83,7 +84,7 @@ function EYSHTest() {
                         selectedAnswer={selectedAnswers[task.id]}
                     />
                 ))}
-                <h2 className="font-bold text-xl mt-8">Бодлого 9-өөс 28</h2>
+                <h2 className="font-bold text-xl sm:mt-8 mt-4">Бодлого 9-өөс 28</h2>
                 {tasks.slice(8, 28).map(task => (
                     <Test 
                         key={task.id} 
@@ -99,7 +100,7 @@ function EYSHTest() {
                         selectedAnswer={selectedAnswers[task.id]}
                     />
                 ))}
-                <h2 className="font-bold text-xl mt-8">Бодлого 29-өөс 36</h2>
+                <h2 className="font-bold text-xl sm:mt-8 mt-4">Бодлого 29-өөс 36</h2>
                 {tasks.slice(28, 36).map(task => (
                     <Test 
                         key={task.id} 
@@ -117,8 +118,8 @@ function EYSHTest() {
                 ))}
             </div>
             <div className="w-full flex flex-col items-center relative">
-            <h1 className="font-bold text-2xl mt-8">Нэгдүгээр хэсэг. СОНГОХ ДААЛГАВАР</h1>
-            <p className="font-semibold text-xl">
+            <h1 className="font-bold sm:text-2xl text-xl mt-8 ">Нэгдүгээр хэсэг. СОНГОХ ДААЛГАВАР</h1>
+            <p className="font-semibold sm:text-xl text-base sm:px-20 px-9 mb-10">
                 <span className="text-red-600">Санамж:</span> Даалгавруудын хариултыг бөглөхдөө хариултын хуудасны 2-р хэсгийг бөглөх
                 <br /> заавартай сайтар танилцаарай. Зургийг бодит хэмжээгээр өгөөгүй гэдгийг санаарай.
             </p>
@@ -127,7 +128,7 @@ function EYSHTest() {
             </div>
             <Link to={`/EYSH/${year}/Result`}>
                 <button 
-                    className='w-32 h-10 bg-[#F5DAC6] rounded-full text-xl font-bold'
+                    className='w-32 h-10 bg-[#F5DAC6] rounded-full text-xl font-bold mb-20'
                     onClick={handleSubmit}
                     >
                     submit
