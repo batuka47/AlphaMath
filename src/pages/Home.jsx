@@ -27,7 +27,7 @@ function Home() {
               <br /><span className='text-[#E75234]'>Амжилтын Гараа</span> эндээс...
             </h1>
             <p className='sm:text-xl text-xs font-bold'>SAT, ЭЕШ шалгалтуудын бэлтгэл болон Онолын <br/> Математик цөм бүрэн</p>
-            <div className='text-white rounded-lg bg-[#E75234] flex justify-center items-center w-32 h-12'>Эхлэх</div>
+            <Link to={"/EYSH"}><div className='text-white rounded-lg bg-[#E75234] flex justify-center items-center w-32 h-12'>Эхлэх</div></Link>
           </div>
           <div className=' sm:w-1/2 w-full flex flex-col justify-center items-center relative'>
             <img src={welcome} alt="welcome" className='sm:w-10/12 w-8/12 sm:mr-5 pt-10' />
