@@ -2,64 +2,75 @@ import React from 'react'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 import boy from '../assets/boy.png'
+import pointDown from '../assets/icon/pointDown.svg'
+import { useNavigate } from 'react-router-dom'
 
 function EYSHadvice() {
+    const navigate = useNavigate();
+
     return (
-        <div className="container mx-auto">
+        <div>
             <Header />
-            <div className="flex flex-col bg-white rounded-lg shadow-md p-6">
-                <h1 className='flex justify-center items-center sm:text-4xl text-2xl relative font-Yeseva One font-extrabold mt-20'>
+            
+            <div className="flex flex-col gap-10 justify-center items-center rounded-lg shadow-md sm:p-6 relative px-10">
+                <button 
+                    onClick={() => navigate(-1)}
+                    className="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors absolute top-10 left-10"
+                >
+                    <img src={pointDown} alt="back" className="w-6 h-6 rotate-90" />
+            </button>
+            <h1 className='flex justify-center items-center sm:text-4xl text-2xl relative font-Yeseva One font-extrabold mt-20'>
                 ЭЕШ-д хэрэгтэй зааврууд 
                 </h1>
-                <div className='flex justify-center items-center rounded-sm'>
-                    <img src={boy} alt="boy" className='scale-75' />
+                <div className='flex w-full sm:w-2/3 justify-center items-center rounded-sm'>
+                    <img src={boy} alt="boy" className='w-full' />
                 </div>
-                <div className='sm:ml-99 ml-12'>
-                    <p className='flex justify-center items-center sm:text-[18px] text-[16px] sm:w-170 w-72 py-4'>
+                <div className='flex w-full sm:w-2/3 flex-col gap-5'>
+                    <p className='sm:text-[18px] text-[16px]'>
                     ЭЕШ өгөхөөр бэлдэж буй бүхий л сурагч нар өндөр оноо авч, хүссэн сургуульдаа орохыг хүсдэг нь мэдээж. Гэхдээ сайн бэлдэж, амжилт үзүүлмээр байгаа ч хаанаас эхлэхээ мэдэхгүй байвал яг одоо анхаарлаа наашаа хандуулаарай. Учир нь ямар арга барилаар уг шалгалтыг давах талаар зөвлөмжийг та бүхэндээ хүргэж байна.
                     </p>
-                    <h1 className='font-bold sm:text-xl text-base py-4 '>Тодорхой төлөвлөгөө гаргах</h1>
-                    <p className='flex justify-center items-center sm:text-[18px] text-[16px] sm:w-170 w-72 py-4'>
+                    <h1 className='font-bold sm:text-xl text-base'>Тодорхой төлөвлөгөө гаргах</h1>
+                    <p className='sm:text-[18px] text-[16px]'>
                     ЭЕШ-ын өмнөх хичээл хийх боломжит бүх хугацаа бол чиний өндөр оноо авах магадлал гэдгийг санаарай. Хамгийн гол нь тэр хугацааг үр дүнтэй, зохион байгуулалттай ашиглаж чадаж байгаа эсэх нь чухал юм шүү. Харин цаг хугацааг зөв ашиглахад сайн төлөвлөгөө хэрэгтэй. Хичээл хийх боломжит цагаа судлаад маш ухаалгаар зохион байгуулах хэрэгтэй
                     </p>
-                    <h1 className='font-bold sm:text-xl text-base py-4 '>Хаана?, Хэзээ?, Хэнтэй?</h1>
-                    <p className='flex justify-center items-center sm:text-[18px] text-[16px] sm:w-170 w-72 py-4'>
+                    <h1 className='font-bold sm:text-xl text-base'>Хаана?, Хэзээ?, Хэнтэй?</h1>
+                    <p className='sm:text-[18px] text-[16px]'>
                     Анхаарлаа дээд цэгт нь тулгах ёстой учраас орчин хамгийн чухал. Ширээн дээрээс ном, сурах бичиг, үзэг харандаа гэх мэт хичээлд хэрэгтэй зүйсээс бусдыг хураагаарай. Аль болох анхаарал сарниулахгүй байх тайван өнгийг бүрдүүлэх нь чухал юм. Элдэв анхаарал сарниулах бүх зүйлийг унтраагаарай. Үүнд чиний гар утас, телевиз гэх зэрэг зүйлс багтах юм.
                     </p>
-                    <h1 className='font-bold sm:text-xl text-base py-4 '>Эхлэх цэгээ зөв сонгох</h1>
-                    <p className='flex justify-center items-center sm:text-[18px] text-[16px] sm:w-170 w-72 py-4'>
+                    <h1 className='font-bold sm:text-xl text-base'>Эхлэх цэгээ зөв сонгох</h1>
+                    <p className='sm:text-[18px] text-[16px]'>
                     Амжилтын гайхалтай нууц нь ихэнхдээ уг үндэс, эхлэл байдгийг надаар хэлүүлэлтгүй мэдэж байгаа биз. Ер нь ЭЕШ бэлдэж эхлэхдээ анхан шатны, амархан сэдвээс эхэлж судлах нь зүйтэй. Угаасаа ЕБС-ийн хичээлийн агуулга нь эхний судалсан агуулгаа гүнзгийрүүлэн судалдаг. Тиймээс болж өгвөл амархан сэдвээс эхэлж судлаарай.
                     </p>
-                    <h1 className='font-bold sm:text-xl text-base py-4 '>Хэтэрхий удаан суух хэрэггүй</h1>
-                    <p className='flex justify-center items-center text-[18px] sm:w-170 w-72 py-4'>
+                    <h1 className='font-bold sm:text-xl text-base'>Хэтэрхий удаан суух хэрэггүй</h1>
+                    <p className='text-[18px]'>
                     Нэг удаа суухдаа хэт удаан суучхаад дараа нь хэд хоног хийхээ больчихвол хэзээ ч үр дүн гарахгүй. Харин эсрэгээрээ өдөр болгон давтах хэрэгтэй бөгөөд 1 цаг суугаад 15 минут амрах гэх мэт тогтмол цагаар суувал зохимжтой байдаг. Энэ нь чамайг чилээрхэж ядраад шантрахгүй байлгахаас гадна, хийсэн хичээл чинь толгойд “суух” тустай.
                     </p>
-                    <h1 className='font-bold sm:text-xl text-base py-4 '>Заавал бүгдийг цээжлэх албагүй</h1>
-                    <p className='flex justify-center items-center text-[18px] sm:w-170 w-72 py-4'>
+                    <h1 className='font-bold sm:text-xl text-base'>Заавал бүгдийг цээжлэх албагүй</h1>
+                    <p className='text-[18px]'>
                     Хэрвээ чиний толгой компьютер биш л бол цээжлэхийг оролдсон бүх мэдээллийг тогтоохгүй нь мэдээж биз. Олон мэдээллийг тархиндаа шингээхийг оролдох нь хүний тогтоох чадвар сарниж, толгойд холио бантан хутгалддаг. Тиймээс чухал гэсэн агуулгаа сонирхолтой байдлаар (схем бүдүүвч зурах, зураг бичлэг үзэх г.м) ойлгож авах хэрэгтэй.
                     </p>
-                    <h1 className='font-bold sm:text-xl text-base py-4 '>Жишиг даалгавар, тестүүд дээр ажиллах</h1>
-                    <p className='flex justify-center items-center text-[18px] sm:w-170 w-72 py-4'>
+                    <h1 className='font-bold sm:text-xl text-base'>Жишиг даалгавар, тестүүд дээр ажиллах</h1>
+                    <p className='text-[18px]'>
                     Жил жилүүдийн ЭЕШ-аас авч үзэхэд 70-80 хувь нь өмнөх жилийн шалгалтыг агуулсан байдаг. Мөн тест, жишээ дасгал ажилснаар тест ажиллаж сурч, мартсан агуулгаа ч эргэн санадаг. 
                     </p>
-                    <h1 className='font-bold sm:text-xl text-base py-4 '>Тест гүйцэтгэж буй хугацаагаа хянах</h1>
-                    <p className='flex justify-center items-center text-[18px] sm:w-170 w-72 py-4'>
+                    <h1 className='font-bold sm:text-xl text-base'>Тест гүйцэтгэж буй хугацаагаа хянах</h1>
+                    <p className='text-[18px]'>
                     Өөрийгөө хэдэн асуултыг хэр их хугацаатайгаар гүйцэтгэж байгаагаа хянаарай. Яг өөрийгөө шалгалтанд орж байгаагаар төсөөлөөд. Ингэхдээ хугацааг аажмаар багасган үр дүнг улам өндөр болгоорой.
 
                     </p>
-                    <h1 className='font-bold sm:text-xl text-base py-4 '>Сайн хамтрагчтай болох</h1>
-                    <p className='flex justify-center items-center text-[18px] sm:w-170 w-72 py-4'>
+                    <h1 className='font-bold sm:text-xl text-base'>Сайн хамтрагчтай болох</h1>
+                    <p className='text-[18px]'>
                     ЭЕШ гэх өндөр оргилд гарахад чамайг бууж өгөхөд дэмжээд өргөх, мэдэхгүй будлисан үед туслаад дэмжих сайн хамтрагч хэрэгтэй. Болж өгвөл нэг төвшний эсвэл арай ахиу мэдлэгтэй байвал сайн.
                     </p>
-                    <h1 className='font-bold sm:text-xl text-base py-4 '>Мэдэхгүй зүйлээ багшаас лавлах</h1>
-                    <p className='flex justify-center items-center text-[18px] sm:w-170 w-72 py-4'>
+                    <h1 className='font-bold sm:text-xl text-base'>Мэдэхгүй зүйлээ багшаас лавлах</h1>
+                    <p className='text-[18px]'>
                     ЭЕШ зөвхөн суралцагчийг шалгадаггүй бөгөөд багшийн ур чадварыг ч хянадаг. Иймээс багш чинь ямагт чамд тусалж, зааж зөвлөхөд бэлэн байдгийг санаарай. Бас багшийн өгсөн давтлага, сургалтаас битгий хоцроорой. Багштай суралцах цаг бол хамгийн үнэ цэнэтэй хугацаа байдаг юм шүү.
                     </p>
-                    <h1 className='font-bold sm:text-xl text-base py-4 '>Бууж өгөхийг бодоод ч хэрэггүй</h1>
-                    <p className='flex justify-center items-center text-[18px] sm:w-170 w-72 py-4'>
+                    <h1 className='font-bold sm:text-xl text-base'>Бууж өгөхийг бодоод ч хэрэггүй</h1>
+                    <p className='text-[18px]'>
                     Яаж ч хэцүү байсан бууж өгөх хэрэггүй. Хэр их зүйл мэддэг гэдгээ л харуулахад болно. Зүгээр л тоглоом тоглож байгаагаар төсөөлөөл сонирхолтой байдлаар бэлдээд үз. Сэтгэл зүйгээ тайван байлгаж, чадахаасаа чадахгүй хүртэл хичээхэд хангалттай.
                     </p>
-                    <p className='flex justify-center items-center text-[18px] sm:w-170 w-72 py-4'>Эх сурвалж: Хэрхэн ЭЕШ-д үр дүнтэй бэлдэх вэ? – TomYo
+                    <p className='text-[18px]'>Эх сурвалж: Хэрхэн ЭЕШ-д үр дүнтэй бэлдэх вэ? – TomYo
                     </p>
                 </div>
             </div>

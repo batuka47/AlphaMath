@@ -60,7 +60,7 @@ function Test(props) {
             <img 
                 ref={imageRef}
                 src={props.img} 
-                className={`${isImageWide ? 'sm:w-full scale-[60%] sm:-ml-56 ml+6 ' : 'absolute sm:right-2 sm:-top-4 scale-75'}`} 
+                className={`${isImageWide ? 'sm:w-full scale-[60%] sm:-ml-56 ml+6 ' : 'sm:absolute sm:right-2 sm:-top-4 scale-75'}`} 
                 alt="" 
             />
             

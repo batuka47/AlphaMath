@@ -7,6 +7,7 @@ import Result from './pages/Result'
 import SATstatistic from './pages/SATstatistic'
 import SATstrategy from './pages/SATstrategy'
 import EYSHadvice from './pages/EYSHadvice'
+import NotFound from './pages/NotFound'
 
 function App() {
   
@@ -21,6 +22,7 @@ function App() {
         <Route path='/SATstatistic' element={<SATstatistic/>}/>
         <Route path='/SATstrategy' element={<SATstrategy/>}/>
         <Route path='/EYSHadvice' element={<EYSHadvice/>}/>
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </Router>
   )

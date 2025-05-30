@@ -34,50 +34,52 @@ function Result() {
   return (
     <div className="min-h-screen bg-gray-100">
       <Header />
-      <div className='container mx-auto px-4 py-8'>
-        <div className='bg-white shadow-md rounded-lg overflow-hidden'>
+      <div className='px-4 py-8 flex justify-center'>
+        <div className='bg-white shadow-md rounded-lg overflow-hidden max-w-[600px] w-full'>
           <div className='bg-[#F5DAC6] p-6 text-center'>
             <h1 className='text-3xl font-bold text-gray-800'>Тест амжилттай дууслаа!</h1>
             <p className='text-xl text-gray-600 mt-2'>{year} оны {variant} вариант</p>
           </div>
           
-          <div className='p-6'>
-            <table className="w-full border-collapse">
-              <thead className='bg-gray-200'>
-                <tr>
-                  <th className="border p-3 text-left">Даалгавар</th>
-                  <th className="border p-3 text-left">Зөв хариулт</th>
-                  <th className="border p-3 text-left">Таны хариулт</th>
-                  <th className="border p-3 text-left">Оноо</th>
-                </tr>
-              </thead>
-              <tbody>
-                {task && task.problem.map((problem) => {
-                  let points = 0;
-                  const numId = parseInt(problem.id);
-                  const userAnswer = userAnswers[problem.id] || '';
-                  
-                  if (userAnswer === problem.answer) {
-                    if (numId >= 1 && numId <= 8) {
-                      points = 1;
-                    } else if (numId >= 9 && numId <= 27) {
-                      points = 2;
-                    } else if (numId >= 28 && numId <= 36) {
-                      points = 3;
+          <div className='p-2 sm:p-6'>
+            <div className="overflow-x-auto flex justify-center">
+              <table className="w-full border-collapse min-w-[280px] max-w-[500px] text-sm sm:text-base">
+                <thead className='bg-gray-200'>
+                  <tr>
+                    <th className="border p-1 sm:p-2 text-left w-[15%]">Даалгавар</th>
+                    <th className="border p-1 sm:p-2 text-left w-[35%]">Зөв хариулт</th>
+                    <th className="border p-1 sm:p-2 text-left w-[35%]">Таны хариулт</th>
+                    <th className="border p-1 sm:p-2 text-left w-[15%]">Оноо</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {task && task.problem.map((problem) => {
+                    let points = 0;
+                    const numId = parseInt(problem.id);
+                    const userAnswer = userAnswers[problem.id] || '';
+                    
+                    if (userAnswer === problem.answer) {
+                      if (numId >= 1 && numId <= 8) {
+                        points = 1;
+                      } else if (numId >= 9 && numId <= 27) {
+                        points = 2;
+                      } else if (numId >= 28 && numId <= 36) {
+                        points = 3;
+                      }
                     }
-                  }
-                  
-                  return (
-                    <tr key={problem.id} className={`${points > 0 ? 'bg-green-50' : 'bg-red-50'}`}>
-                      <td className="border p-3">{problem.id}</td>
-                      <td className="border p-3">{problem.answer}</td>
-                      <td className="border p-3">{userAnswer || <span className="text-gray-500">Хариулаагүй</span>}</td>
-                      <td className="border p-3">{points}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                    
+                    return (
+                      <tr key={problem.id} className={`${points > 0 ? 'bg-green-50' : 'bg-red-50'}`}>
+                        <td className="border p-1 sm:p-2">{problem.id}</td>
+                        <td className="border p-1 sm:p-2">{problem.answer}</td>
+                        <td className="border p-1 sm:p-2">{userAnswer || <span className="text-gray-500">Хариулаагүй</span>}</td>
+                        <td className="border p-1 sm:p-2">{points}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
             
             <div className='mt-6 text-center'>
               <p className='text-2xl font-bold text-gray-800'>

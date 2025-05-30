@@ -5,7 +5,15 @@ import insta from '../assets/icon/insta.svg'
 import X from '../assets/icon/X.svg'
 import email from '../assets/icon/email.svg'
 import copyright from '../assets/icon/copyright.svg'
+
 function Footer() {
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'instant'
+    });
+  };
+
   const navBarData = [
     {
       name: '',
@@ -13,11 +21,11 @@ function Footer() {
       links: [
         {
           name: 'ЭЕШ Материал',
-          link: '/eish'
+          link: '/EYSH'
         },
         {
           name: 'SAT Шалгалтын талаар',
-          link: '/eish'
+          link: '/SATstatistic'
         },
         {
           name: 'Математик томьёо',
@@ -109,7 +117,7 @@ function Footer() {
                             <ul className='ml-4'>
                                 {item.links.map((link) => (
                                     <li key={link.name}>
-                                        <Link to={link.link}>{link.name}</Link>
+                                        <Link to={link.link} onClick={scrollToTop}>{link.name}</Link>
                                     </li>
                                 ))}
                                 </ul>
@@ -124,7 +132,7 @@ function Footer() {
                 <img src={email} alt="email" className='scale-75' />
             </div>
         </div>
-        <div className='flex sm:flex-row hidden sm:block flex-col items-center gap-2 sm:ml-20 mt-4 mb-4'>
+        <div className=' sm:flex-row hidden sm:flex flex-col items-center gap-2 sm:ml-20 mt-4 mb-4'>
         <img src={copyright} alt="copyright" className='scale-75' />
         2025 Матийн цагаан солиотнууд ХХК
         <div className='rounded-full w-2 h-2 bg-black'></div>

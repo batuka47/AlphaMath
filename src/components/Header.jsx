@@ -96,7 +96,7 @@ function Header() {
         {isOpen && (
             <div className="fixed inset-0 bg-black opacity-50 z-10" />
         )}
-        <div className='flex relative items-center justify-between w-full h-16 px-10 flex-row bg-white shadow-md z-10'>
+        <div className='flex relative items-center justify-between w-full h-16 sm:px-10 px-4 flex-row bg-white shadow-md z-10'>
           <div className='flex items-center justify-center flex-row gap-4 z-10'>
             <Link to="/">
               <img src={logoText} alt="logo" className='h-10' />
@@ -119,10 +119,10 @@ function Header() {
                   </div>
               </div>
           </div>
-          <div className='flex items-center justify-center flex-row gap-10 z-10'>
+          {/* <div className='flex items-center justify-center flex-row gap-10 z-10'>
               <img src={profile} alt="profile" className='w-8 h-8' />
               <img src={bookmark} alt="bookmark" className='w-8 h-8' />
-          </div>
+          </div> */}
         </div>
         {isOpen && (
                     <div className={`absolute w-full bg-[#F5DAC6] top-16 left-0 shadow-lg rounded-b-lg p-4 justify-center flex sm:flex-row flex-col gap-4 z-20 transition-opacity duration-300 ease-in-out transform ${isOpen ? 'scale-y-100 translate-y-0 opacity-100' : 'scale-y-95 -translate-y-4 opacity-0'}`}> 
