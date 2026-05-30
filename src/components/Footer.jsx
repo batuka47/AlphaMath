@@ -1,145 +1,98 @@
-import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import fb from '../assets/icon/fb.svg'
-import insta from '../assets/icon/insta.svg'
-import X from '../assets/icon/X.svg'
-import email from '../assets/icon/email.svg'
-import copyright from '../assets/icon/copyright.svg'
+import fb        from '../assets/icon/fb.svg'
+import insta     from '../assets/icon/insta.svg'
+import X         from '../assets/icon/X.svg'
+import email     from '../assets/icon/email.svg'
+
+const columns = [
+    {
+        id: 'materials',
+        name: 'Материал',
+        color: '#96ADD6',
+        links: [
+            { name: 'ЭЕШ Тест',            link: '/EYSH'   },
+            { name: 'SAT Математик',        link: '/SAT'    },
+            { name: 'Онолын Математик',     link: '/Theory' },
+        ]
+    },
+    {
+        id: 'about',
+        name: 'Бидний тухай',
+        color: '#F8B8AF',
+        links: [
+            { name: 'Бидний тухай',            link: '/About'  },
+            { name: 'Сурталчилгаа',            link: '/ads'    },
+            { name: 'Хамтарч ажиллах',         link: '/collab' },
+        ]
+    },
+    {
+        id: 'support',
+        name: 'Дэмжлэг',
+        color: '#E75234',
+        links: [
+            { name: 'Холбоо барих',       link: '/contact'   },
+            { name: 'Түгээмэл асуултууд', link: '/FAQ'       },
+            { name: 'Редакцийн ёс зүй',   link: '/editorial' },
+            { name: 'Нууцлалын бодлого',  link: '/privacy'   },
+        ]
+    }
+]
+
+const socials = [
+    { src: fb,    alt: 'Facebook',  href: '#' },
+    { src: insta, alt: 'Instagram', href: 'https://www.instagram.com/_batuka_7/' },
+    { src: X,     alt: 'X',        href: '#' },
+    { src: email, alt: 'Email',    href: 'mailto:alphamath.admin@gmail.com' },
+]
 
 function Footer() {
-  const scrollToTop = () => {
-    window.scrollTo({
-      top: 0,
-      behavior: 'instant'
-    });
-  };
+    return (
+        <footer className="bg-[#F5DAC6]/60 border-t border-[#F5DAC6]">
+            <div className="max-w-6xl mx-auto px-6 sm:px-12 pt-14 pb-8">
 
-  const navBarData = [
-    {
-      name: '',
-      color: '#96ADD6',
-      links: [
-        {
-          name: 'ЭЕШ Материал',
-          link: '/EYSH'
-        },
-        {
-          name: 'SAT Шалгалтын талаар',
-          link: '/SATstatistic'
-        },
-        {
-          name: 'Математик томьёо',
-          link: '/eish'
-        },
-        {
-          name: 'Тодорхойлолтууд',
-          link: '/eish'
-        },
-        {
-          name: 'Сэдвийн бүрэлдэхүүн',
-          link: '/eish'
-        },
-          
-      ]
-    },
-    {
-      name: '',
-      color: '#F8B8AF',
-      links: [
-        {
-          name: 'Бидний тухай',
-          link: '/eish'
-        },
-        {
-          name: 'Боловсролын талаар',
-          link: '/eish'
-        },
-        {
-          name: 'Олимпиадууд',
-          link: '/eish'
-        },
-      ]
-    },
-    {
-      name: '',
-      color: '#01408D',
-      links: [
-        {
-          name: 'Тодорхойлолтууд',
-          link: '/eish'
-        },
-        {
-          name: 'Томьёо',
-          link: '/eish'
-        },
-        {
-          name: 'Сэдвийн бүрэлдэхүүн',
-          link: '/eish'
-        },
-      ]
-    },
-    {
-      name: '',
-      color: '#E75234',
-      links: [
-        {
-          name: 'Холбоо барих',
-          link: '/eish'
-        },
-        {
-          name: 'Спонсорлох',
-          link: '/eish'
-        },
-        {
-          name: 'Түгээмэл асуултууд',
-          link: '/eish'
-        },
-        {
-          name: 'Редакцийн ёс зүй',
-          link: '/eish'
-        },
-        {
-          name: 'Нууцлалын бодлого',
-              link: '/eish'
-        },
-      ]
-    }
-  ]
-
-  return (
-    <div>
-        <div className="w-full bg-[#F5DAC6] pt-20 p-4 justify-center flex flex-col">
-            <div className="w-full justify-center flex flex-col sm:flex-row gap-10"> 
-                {
-                    navBarData.map((item) => (
-                        <div key={item.name} className='sm:p-2 p-2 pl-8  sm:w-1/5 w-full border-t-4' style={{ borderColor: item.color }}>
-                            <h3 className='font-extrabold text-lg my-2'>{item.name}</h3>
-                            <ul className='ml-4'>
-                                {item.links.map((link) => (
-                                    <li key={link.name}>
-                                        <Link to={link.link} onClick={scrollToTop}>{link.name}</Link>
+                {/* Top — columns */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-8 mb-12">
+                    {columns.map(col => (
+                        <div key={col.id}>
+                            <div className="w-8 h-1 rounded-full mb-3" style={{ backgroundColor: col.color }} />
+                            <h3 className="font-extrabold text-sm text-gray-800 mb-3">{col.name}</h3>
+                            <ul className="flex flex-col gap-2">
+                                {col.links.map(l => (
+                                    <li key={l.name}>
+                                        <Link
+                                            to={l.link}
+                                            className="text-sm text-gray-500 hover:text-[#E75234] transition-colors"
+                                        >{l.name}</Link>
                                     </li>
                                 ))}
-                                </ul>
-                            </div>
-                    ))
-                }
+                            </ul>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Bottom — socials + copyright */}
+                <div className="border-t border-[#F5DAC6] pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <p className="text-xs text-gray-400">
+                        © 2026 Матийн цагаан солиотнууд ХХК · Бүх эрх хамгаалагдсан
+                    </p>
+                    <div className="flex items-center gap-3">
+                        {socials.map(s => (
+                            <a
+                                key={s.alt}
+                                href={s.href}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="w-8 h-8 flex items-center justify-center rounded-full bg-white shadow-sm hover:shadow-md transition-shadow"
+                                title={s.alt}
+                            >
+                                <img src={s.src} alt={s.alt} className="w-4 h-4 object-contain" />
+                            </a>
+                        ))}
+                    </div>
+                </div>
             </div>
-            <div className='flex flex-row sm:pl-24 pl-32 pt-5'>
-                <img src={fb} alt="fb" className='scale-[70%]' />
-                <img src={insta} alt="insta" className='scale-75' />
-                <img src={X} alt="X" className='scale-[60%]' />
-                <img src={email} alt="email" className='scale-75' />
-            </div>
-        </div>
-        <div className=' sm:flex-row hidden sm:flex flex-col items-center gap-2 sm:ml-20 mt-4 mb-4'>
-        <img src={copyright} alt="copyright" className='scale-75' />
-        2025 Матийн цагаан солиотнууд ХХК
-        <div className='rounded-full w-2 h-2 bg-black'></div>
-        Бүх эрх хуулиар хамгаалагдсан
-        </div>
-    </div>
-  )
+        </footer>
+    )
 }
 
 export default Footer

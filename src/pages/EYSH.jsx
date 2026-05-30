@@ -1,95 +1,80 @@
-import { useState } from 'react'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 import MaterialChoose from '../components/materialChoose'
-import yesh2 from '../assets/icon/yesh2.svg'
-import onol2 from '../assets/icon/onol2.svg'
-import sat2 from '../assets/icon/sat2.svg'
-import Test from '../components/Test'
-import { useNavigate, Link } from 'react-router-dom'
+import Task from '../datas/Task'
 
-function EYSH(){
-    const year = []; // Initialize an empty array for years
-    for (let i = 2014; i <= 2024; i++) {
-        year.push({ id: i - 2006, title: i }); // Push each year as an object with a title property
-    }
+function EYSH() {
+    const taskData = Task()
 
-    const [selectedAnswers, setSelectedAnswers] = useState({})
+    // Build a map: year -> Set of available variants
+    const availableMap = {}
+    taskData.forEach(t => {
+        const year = 2006 + parseInt(t.id)
+        if (!availableMap[year]) availableMap[year] = new Set()
+        availableMap[year].add(t.variant)
+    })
 
-    const handleAnswerSelect = (id, answer) => {
-        setSelectedAnswers({ ...selectedAnswers, [id]: answer })
-    }
+    const years = []
+    for (let i = 2006; i <= 2024; i++) years.push(i)
 
-    const navigate = useNavigate()
-
-    const handleSubmit = () => {
-        const year = "2024" // Example year
-        const selectedAnswers = { "A": "A", "B": "C", "C": "B" } // Example user answers
-
-        // Navigate to Result page with year and user answers
-        navigate(`/EYSH/${year}/Result`, { state: { year, userAnswers: selectedAnswers } })
-    }
+    const totalTests = taskData.length
 
     return (
-       <div>
-        <Header/>
-        <h1 className="sm:text-4xl text-3xl w-full text-center mb-12 mt-6 font-bold">Элсэлтийн Ерөнхий Шалгалт</h1>
-        <div className='sm:p-10 flex flex-col gap-10'>
+        <div className="min-h-screen bg-white">
+            <Header />
 
-        <h1 className="sm:text-3xl text-2xl w-full text-center font-bold">Он оны ЭЕШ-ийн тестүүд</h1>
-        <div className='flex justify-center items-center'>     
-            <div className="grid sm:grid-cols-3 grid-cols-1 gap-6 gap-y-5 w-11/12">
-                {
-                    year.map((data)=>{
-                        return <MaterialChoose year={data.title} key={data.title}/>
-                    })
-                }
+            {/* Hero */}
+            <div className="bg-[#F5DAC6] px-8 sm:px-16 py-14 flex flex-col gap-4">
+                <div className="flex flex-wrap gap-3 text-xs font-bold">
+                    <span className="bg-white px-3 py-1.5 rounded-full shadow-sm text-[#2760A6]">{totalTests} тест</span>
+                    <span className="bg-white px-3 py-1.5 rounded-full shadow-sm text-[#E75234]">2006–2024</span>
+                    <span className="bg-white px-3 py-1.5 rounded-full shadow-sm text-gray-600">A · B · C · D хувилбар</span>
+                </div>
+                <h1 className="text-3xl sm:text-4xl font-extrabold leading-tight">
+                    Элсэлтийн Ерөнхий Шалгалт<br />
+                    <span className="text-[#E75234]">Математик</span>
+                </h1>
+                <p className="text-gray-600 max-w-xl">
+                    2006 оноос 2024 он хүртэлх бүх хувилбаруудыг дадлагажуул. Тест дуусгасны дараа
+                    зөв хариулт, оноогоо шууд харна.
+                </p>
             </div>
-        </div>
-        </div>
-        <div className='mb-32'>
-          <h1 className='sm:text-4xl text-2xl font-extrabold w-full sm:px-16 px-6 mt-20'>Зөвлөгөө</h1>
-          <div className='grid sm:grid-cols-3 grid-cols-1 gap-4 sm:px-16 px-6 mt-10'>
-            
-            <Link to="/EYSHadvice" className='w-full flex sm:flex-col flex-row border-1 border-[#E7836F] border-solid sm:justify-between relative  sm:h-[500px] h-40 p-2 gap-4 sm:p-4 rounded-xl'>
-              <img src={yesh2} alt="yesh" className='h-full rounded-xl'/>
-              <div className='flex flex-col gap-2'>
-              <div className='flex flex-row justify-start sm:gap-2 sm:items-center w-full pt-7'>
-                <h1 className='w-8 h-4 rounded-sm text-[12px] flex justify-center  items-center absolute border-1 border-black border-solid '>ЭЕШ</h1>
-                <div className='w-2 h-2 rounded-full bg-[#2760A6] hidden'></div>
-              </div>
-                <h1 className='font-bold sm:text-xl text-base sm:pt-5 pt-3'>ЭЕШ-д хэрэгтэй зааврууд </h1>
-                <p className='sm:text-[13px] text-[11px] sm:w-64  '>Дэлгэрэнгүй үзэх</p>
-              </div>
-            </Link>
 
-            <Link to="/SATstatistic"className='w-full flex sm:flex-col flex-row border-1 border-[#E7836F] border-solid sm:justify-between relative sm:h-[500px] h-40 p-2 gap-4 sm:p-4 rounded-xl'>
-              <img src={sat2} alt="yesh" className='h-full rounded-xl'/>
-              <div className='flex flex-col gap-2'>
-              <div className='flex flex-row justify-start sm:gap-2 sm:items-center w-full pt-7'>
-                <h1 className='w-8 h-4 rounded-sm text-[12px] flex justify-center items-center absolute border-1 border-black border-solid '>SAT</h1>
-                <div className='w-2 h-2 rounded-full bg-[#2760A6] hidden'></div>
-              </div>
-                <h1 className='font-bold sm:text-xl text-base sm:pt-5 pt-3'>Шалгалтын талаар</h1>
-                <p className='sm:text-[13px] text-[11px] sm:w-64  '>Дэлгэрэнгүй үзэх</p>
-              </div>
-            </Link>
-            <Link to="SATstrategy" className='w-full flex sm:flex-col flex-row border-1 border-[#E7836F] border-solid sm:justify-between relative sm:h-[500px] h-40 p-2 gap-4 sm:p-4 rounded-xl'>
-              <img src={onol2} alt="yesh" className='h-full rounded-xl'/>
-              <div className='flex flex-col gap-2'>
-              <div className='flex flex-row justify-start sm:gap-2 sm:items-center w-full pt-7'>
-                <h1 className='w-8 h-4 rounded-sm text-[12px] flex justify-center items-center absolute border-1 border-black border-solid '>SAT</h1>
-                <div className='w-2 h-2 rounded-full bg-[#2760A6] hidden'></div>
-              </div>
-                <h1 className='font-bold sm:text-xl text-base sm:pt-5 pt-3'>SAT-д туслах стратеги</h1>
-                <p className='sm:text-[13px] text-[11px] sm:w-64  '>Дэлгэрэнгүй үзэх</p>
-              </div>
-            </Link>
-          </div>
+            {/* Year grid */}
+            <div className="px-6 sm:px-12 lg:px-20 py-12">
+                <h2 className="text-xl font-extrabold mb-6 text-gray-800">Он сонгох</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {years.map(year => (
+                        <MaterialChoose
+                            key={year}
+                            year={year}
+                            availableVariants={availableMap[year] || new Set()}
+                        />
+                    ))}
+                </div>
+            </div>
+
+            {/* Tips */}
+            <div className="px-6 sm:px-12 lg:px-20 pb-20">
+                <h2 className="text-xl font-extrabold mb-6 text-gray-800">Зөвлөгөө</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    {[
+                        { tag: 'Цаг', title: 'Цагаа хуваарил', body: 'Нэгдүгээр хэсэгт тус бодлогод дунджаар 2 минут. Хэт удаан болсон бодлогыг орхиод дараагийнхыг бод.' },
+                        { tag: 'Дадлага', title: 'Олон хувилбар давт', body: 'Адилхан сэдэв өөр жилд дахин гардаг. Олон хувилбар давтах нь шалгалтын хэв маягийг таниулна.' },
+                        { tag: 'Шинжилгээ', title: 'Алдаанаасаа сур', body: 'Тест дуусгасны дараа алдсан бодлогоо дахин бод. Алдааны дүн шинжилгээ нь хамгийн хурдан ахиц гаргах арга.' },
+                    ].map(tip => (
+                        <div key={tip.tag} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex flex-col gap-2">
+                            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-[#F5DAC6] text-[#E75234] w-fit">{tip.tag}</span>
+                            <h3 className="font-extrabold text-base">{tip.title}</h3>
+                            <p className="text-sm text-gray-500 leading-relaxed">{tip.body}</p>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            <Footer />
         </div>
-        
-        <Footer/>
-       </div>
     )
 }
+
 export default EYSH
