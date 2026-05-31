@@ -53,7 +53,7 @@ function Home() {
 
           {/* ── ЭЕШ ── */}
           <Link to="/EYSH"
-            className="snap-start flex-shrink-0 w-52 sm:w-auto relative overflow-hidden rounded-3xl bg-[#96ADD6]/70 h-56 sm:h-72 p-5 flex flex-col justify-between">
+            className="snap-start flex-shrink-0 w-52 sm:w-auto relative overflow-hidden rounded-3xl bg-[#96ADD6]/70 h-52 sm:h-64 p-5 flex flex-col justify-between">
             <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-[#2760A6] flex items-center justify-center flex-shrink-0 z-10">
               <img src={arrowTR} alt="" className="scale-75" />
             </div>
@@ -68,7 +68,7 @@ function Home() {
 
           {/* ── SAT — image bottom ── */}
           <Link to="/SAT"
-            className="snap-start flex-shrink-0 w-52 sm:w-auto relative overflow-hidden rounded-3xl bg-[#F8B8AF]/70 h-56 sm:h-72 p-5 flex flex-col justify-between">
+            className="snap-start flex-shrink-0 w-52 sm:w-auto relative overflow-hidden rounded-3xl bg-[#F8B8AF]/70 h-52 sm:h-64 p-5 flex flex-col justify-between">
             <div className="z-10">
               <h2 className="font-bold text-lg sm:text-2xl">SAT</h2>
               <p className="text-xs sm:text-sm mt-1 leading-snug" style={{color:'#555'}}>
@@ -83,7 +83,7 @@ function Home() {
 
           {/* ── Theory ── */}
           <Link to="/Theory"
-            className="snap-start flex-shrink-0 w-52 sm:w-auto relative overflow-hidden rounded-3xl bg-[#C9CFD1]/70 h-56 sm:h-72 p-5 flex flex-col justify-between">
+            className="snap-start flex-shrink-0 w-52 sm:w-auto relative overflow-hidden rounded-3xl bg-[#C9CFD1]/70 h-52 sm:h-64 p-5 flex flex-col justify-between">
             <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-[#2760A6] flex items-center justify-center flex-shrink-0 z-10">
               <img src={arrowTR} alt="" className="scale-75" />
             </div>
