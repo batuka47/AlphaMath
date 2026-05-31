@@ -48,51 +48,52 @@ function Home() {
       <div className="px-6 sm:px-16 mt-14 sm:mt-20">
         <h1 className="text-2xl sm:text-4xl font-extrabold mb-6 sm:mb-10">Цэс сонгох</h1>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:items-end">
+        {/* Mobile: horizontal scroll — Desktop: 3-col grid, same height */}
+        <div className="flex overflow-x-auto gap-4 pb-3 -mx-6 px-6 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-3 sm:overflow-visible snap-x snap-mandatory">
 
-          {/* ── ЭЕШ — tallest ── */}
+          {/* ── ЭЕШ ── */}
           <Link to="/EYSH"
-            className="relative overflow-hidden rounded-3xl bg-[#96ADD6]/70 h-44 sm:h-80 p-5 flex flex-col justify-between">
-            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-[#2760A6] flex items-center justify-center flex-shrink-0 z-10">
+            className="snap-start flex-shrink-0 w-52 sm:w-auto relative overflow-hidden rounded-3xl bg-[#96ADD6]/70 h-56 sm:h-72 p-5 flex flex-col justify-between">
+            <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-[#2760A6] flex items-center justify-center flex-shrink-0 z-10">
               <img src={arrowTR} alt="" className="scale-75" />
             </div>
             <div className="z-10">
-              <h2 className="font-bold text-xl sm:text-2xl">ЭЕШ</h2>
-              <p className="text-xs sm:text-sm text-gray-700 mt-1 leading-snug max-w-[10rem] sm:max-w-[12rem]">
+              <h2 className="font-bold text-lg sm:text-2xl">ЭЕШ</h2>
+              <p className="text-xs sm:text-sm mt-1 leading-snug" style={{color:'#555'}}>
                 2006–2024 оны бүх хувилбаруудыг дадлагажуулж, оноогоо мэдэж ав.
               </p>
             </div>
-            <img src={yesh} alt="" className="absolute -top-3 -right-3 w-36 sm:w-56 pointer-events-none" />
+            <img src={yesh} alt="" className="absolute -top-2 -right-2 w-28 sm:w-52 pointer-events-none" />
           </Link>
 
-          {/* ── SAT — shortest — image bottom ── */}
+          {/* ── SAT — image bottom ── */}
           <Link to="/SAT"
-            className="relative overflow-hidden rounded-3xl bg-[#F8B8AF]/70 h-44 sm:h-60 p-5 flex flex-col justify-between">
+            className="snap-start flex-shrink-0 w-52 sm:w-auto relative overflow-hidden rounded-3xl bg-[#F8B8AF]/70 h-56 sm:h-72 p-5 flex flex-col justify-between">
             <div className="z-10">
-              <h2 className="font-bold text-xl sm:text-2xl">SAT</h2>
-              <p className="text-xs sm:text-sm text-gray-700 mt-1 leading-snug max-w-[10rem] sm:max-w-[12rem]">
+              <h2 className="font-bold text-lg sm:text-2xl">SAT</h2>
+              <p className="text-xs sm:text-sm mt-1 leading-snug" style={{color:'#555'}}>
                 Олон улсын SAT шалгалтад зориулсан материал, практик тест.
               </p>
             </div>
-            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-[#E7836F] flex items-center justify-center flex-shrink-0 z-10">
+            <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-[#E7836F] flex items-center justify-center flex-shrink-0 z-10">
               <img src={arrowTR} alt="" className="scale-75" />
             </div>
-            <img src={sat} alt="" className="absolute -bottom-3 -right-3 w-36 sm:w-52 pointer-events-none" />
+            <img src={sat} alt="" className="absolute -bottom-2 -right-2 w-28 sm:w-48 pointer-events-none" />
           </Link>
 
-          {/* ── Theory — medium ── */}
+          {/* ── Theory ── */}
           <Link to="/Theory"
-            className="relative overflow-hidden rounded-3xl bg-[#C9CFD1]/70 h-44 sm:h-72 p-5 flex flex-col justify-between">
-            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-[#2760A6] flex items-center justify-center flex-shrink-0 z-10">
+            className="snap-start flex-shrink-0 w-52 sm:w-auto relative overflow-hidden rounded-3xl bg-[#C9CFD1]/70 h-56 sm:h-72 p-5 flex flex-col justify-between">
+            <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-[#2760A6] flex items-center justify-center flex-shrink-0 z-10">
               <img src={arrowTR} alt="" className="scale-75" />
             </div>
             <div className="z-10">
-              <h2 className="font-bold text-xl sm:text-2xl">Онолын математик</h2>
-              <p className="text-xs sm:text-sm text-gray-700 mt-1 leading-snug max-w-[10rem] sm:max-w-[12rem]">
+              <h2 className="font-bold text-lg sm:text-2xl">Онолын математик</h2>
+              <p className="text-xs sm:text-sm mt-1 leading-snug" style={{color:'#555'}}>
                 Тодорхойлолт, томьёо, сэдвийн бүрэлдэхүүнийг цэгцтэй судал.
               </p>
             </div>
-            <img src={onol} alt="" className="absolute -top-3 -right-3 w-36 sm:w-56 pointer-events-none" />
+            <img src={onol} alt="" className="absolute -top-2 -right-2 w-28 sm:w-52 pointer-events-none" />
           </Link>
 
         </div>
