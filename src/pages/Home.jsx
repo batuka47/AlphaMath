@@ -3,11 +3,11 @@ import Header from '../components/Header'
 import Footer from '../components/Footer'
 
 import welcome from '../assets/welcome.png'
+import boy     from '../assets/boy.png'
+import study   from '../assets/study.png'
+import board   from '../assets/board.png'
 import spark   from '../assets/icon/spark.svg'
 import arrowTR from '../assets/icon/arrowTR.svg'
-import yesh    from '../assets/icon/yesh.svg'
-import onol    from '../assets/icon/onol.svg'
-import sat     from '../assets/icon/sat.svg'
 import yesh2   from '../assets/icon/yesh2.svg'
 import onol2   from '../assets/icon/onol2.svg'
 import sat2    from '../assets/icon/sat2.svg'
@@ -47,51 +47,69 @@ function Home() {
       {/* Menu cards */}
       <div className="px-6 sm:px-16 mt-14 sm:mt-20">
         <h1 className="text-2xl sm:text-4xl font-extrabold mb-6 sm:mb-10">Цэс сонгох</h1>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
 
-          <Link to="/EYSH" className="flex flex-row sm:flex-col justify-between relative bg-[#96add6b2] h-28 sm:h-56 p-4 rounded-3xl">
-            <div className="flex sm:flex-col flex-row items-center sm:items-start gap-3 sm:gap-0">
-              <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full flex justify-center items-center bg-[#2760A6] flex-shrink-0">
+        {/* Desktop: 3 cols, different heights aligned to bottom */}
+        {/* Mobile: stacked full-width */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:items-end">
+
+          {/* ── ЭЕШ — tallest ── */}
+          <Link to="/EYSH"
+            className="relative overflow-hidden rounded-3xl bg-[#96ADD6]/70 h-36 sm:h-80 block">
+            {/* Photo: right side, diagonal left edge */}
+            <img src={boy} alt="" className="absolute inset-y-0 right-0 h-full w-3/5 object-cover object-center pointer-events-none"
+              style={{ clipPath: 'polygon(22% 0%, 100% 0%, 100% 100%, 0% 100%)' }} />
+            {/* Text in gap */}
+            <div className="relative z-10 h-full p-5 flex flex-col justify-between" style={{ width: '52%' }}>
+              <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-[#2760A6] flex items-center justify-center flex-shrink-0">
                 <img src={arrowTR} alt="" className="scale-75" />
               </div>
-              <div className="flex flex-col gap-1 sm:mt-auto">
-                <h2 className="font-bold text-lg sm:text-xl">ЭЕШ</h2>
-                <p className="text-xs sm:text-[13px] text-gray-700 hidden sm:block w-64">
+              <div>
+                <h2 className="font-bold text-xl sm:text-2xl">ЭЕШ</h2>
+                <p className="text-xs sm:text-sm text-gray-700 mt-1 hidden sm:block leading-snug">
                   2006–2024 оны бүх хувилбаруудыг дадлагажуулж, оноогоо мэдэж ав.
                 </p>
               </div>
             </div>
-            <img src={yesh} alt="" className="w-20 sm:w-auto scale-75 sm:scale-75 absolute right-2 top-2 sm:-top-2 sm:-right-2 pointer-events-none" />
           </Link>
 
-          <Link to="/SAT" className="flex flex-row sm:flex-col justify-between relative bg-[#F8B8AFb2] h-28 sm:h-56 p-4 rounded-3xl">
-            <div className="flex sm:flex-col flex-row items-center sm:items-start gap-3 sm:gap-0">
-              <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full flex justify-center items-center bg-[#E7836F] flex-shrink-0">
+          {/* ── SAT — medium ── */}
+          <Link to="/SAT"
+            className="relative overflow-hidden rounded-3xl bg-[#F8B8AF]/70 h-36 sm:h-64 block">
+            {/* Photo: left side, diagonal right edge */}
+            <img src={study} alt="" className="absolute inset-y-0 left-0 h-full w-3/5 object-cover object-center pointer-events-none"
+              style={{ clipPath: 'polygon(0% 0%, 78% 0%, 100% 100%, 0% 100%)' }} />
+            {/* Text in gap — right side */}
+            <div className="relative z-10 h-full p-5 flex flex-col justify-between items-end ml-auto" style={{ width: '48%' }}>
+              <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-[#E7836F] flex items-center justify-center flex-shrink-0">
                 <img src={arrowTR} alt="" className="scale-75" />
               </div>
-              <div className="flex flex-col gap-1 sm:mt-auto">
-                <h2 className="font-bold text-lg sm:text-xl">SAT</h2>
-                <p className="text-xs sm:text-[13px] text-gray-700 hidden sm:block w-64">
+              <div className="text-right">
+                <h2 className="font-bold text-xl sm:text-2xl">SAT</h2>
+                <p className="text-xs sm:text-sm text-gray-700 mt-1 hidden sm:block leading-snug">
                   Олон улсын SAT шалгалтад зориулсан материал, практик тест.
                 </p>
               </div>
             </div>
-            <img src={sat} alt="" className="w-20 sm:w-auto scale-75 absolute right-2 bottom-2 sm:-bottom-2 sm:-right-2 pointer-events-none" />
           </Link>
 
-          <Link to="/Theory" className="flex flex-row sm:flex-col justify-between relative bg-[#C9CFD1b2] h-28 sm:h-56 p-4 rounded-3xl">
-            <div className="flex sm:flex-col flex-row items-center sm:items-start gap-3 sm:gap-0">
-              <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full flex justify-center items-center bg-[#2760A6] flex-shrink-0">
+          {/* ── Theory — shortest ── */}
+          <Link to="/Theory"
+            className="relative overflow-hidden rounded-3xl bg-[#C9CFD1]/70 h-36 sm:h-56 block">
+            {/* Photo: right side, steeper diagonal */}
+            <img src={board} alt="" className="absolute inset-y-0 right-0 h-full w-3/5 object-cover object-center pointer-events-none"
+              style={{ clipPath: 'polygon(28% 0%, 100% 0%, 100% 100%, 0% 100%)' }} />
+            {/* Text in gap */}
+            <div className="relative z-10 h-full p-5 flex flex-col justify-between" style={{ width: '50%' }}>
+              <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-[#2760A6] flex items-center justify-center flex-shrink-0">
                 <img src={arrowTR} alt="" className="scale-75" />
               </div>
-              <div className="flex flex-col gap-1 sm:mt-auto">
-                <h2 className="font-bold text-lg sm:text-xl">Онолын математик</h2>
-                <p className="text-xs sm:text-[13px] text-gray-700 hidden sm:block w-64">
+              <div>
+                <h2 className="font-bold text-lg sm:text-xl leading-tight">Онолын математик</h2>
+                <p className="text-xs sm:text-sm text-gray-700 mt-1 hidden sm:block leading-snug">
                   Тодорхойлолт, томьёо, сэдвийн бүрэлдэхүүнийг цэгцтэй судал.
                 </p>
               </div>
             </div>
-            <img src={onol} alt="" className="w-20 sm:w-auto scale-75 absolute right-2 top-2 sm:-top-2 sm:-right-2 pointer-events-none" />
           </Link>
 
         </div>
