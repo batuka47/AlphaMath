@@ -372,24 +372,23 @@ function EYSHTest() {
             <div className="w-full flex flex-col px-4 sm:px-8 lg:px-20 mt-8">
 
                 {/* ── Header ── */}
-                <div className="w-full flex flex-col items-center relative">
-                    <div className="border-b-4 border-black w-full flex flex-row justify-between">
-                        <h1 className="font-bold text-lg sm:text-2xl">Хувилбар {year}</h1>
-                        <h1 className="font-bold text-lg sm:text-2xl">Математик</h1>
+                <div className="w-full flex flex-col items-center">
+                    {/* Back link + title row */}
+                    <div className="border-b-4 border-black w-full flex flex-row items-center justify-between mb-4">
+                        <Link to="/EYSH" className="flex items-center gap-1 text-gray-500 hover:text-gray-800 transition-colors py-1">
+                            <img src={back} alt="back" className="rotate-90 w-5 h-5" />
+                            <span className="text-xs hidden sm:inline">Буцах</span>
+                        </Link>
+                        <h1 className="font-bold text-base sm:text-2xl">Хувилбар {year}</h1>
+                        <h1 className="font-bold text-base sm:text-2xl">Математик</h1>
                     </div>
 
-                    <h1 className="font-bold text-base sm:text-2xl mt-6 text-center">
+                    <h1 className="font-bold text-sm sm:text-2xl mt-2 text-center">
                         Нэгдүгээр хэсэг. СОНГОХ ДААЛГАВАР
                     </h1>
-                    <p className="font-semibold text-sm sm:text-lg text-center max-w-3xl mt-2 leading-relaxed">
+                    <p className="font-semibold text-xs sm:text-base text-center max-w-3xl mt-2 leading-relaxed text-gray-700">
                         <span className="text-red-600">Санамж:</span> {sectionOneNote}
                     </p>
-
-                    <Link to="/EYSH">
-                        <div className="absolute top-28 left-0">
-                            <img src={back} alt="back" className="rotate-90 scale-75" />
-                        </div>
-                    </Link>
                 </div>
 
                 {/* ── Section 1: Multiple choice — dynamic sections ── */}
