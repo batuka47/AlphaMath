@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from 'react'
+import { useTaskRefresh } from '@/lib/TaskContext'
 import * as pdfjsLib from 'pdfjs-dist'
 import {
     Upload, FileText, CheckCircle, Loader2, AlertCircle,
@@ -153,6 +154,7 @@ function DropZone({ onFile, file }) {
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 export default function AdminImport() {
+    const refreshTasks = useTaskRefresh()
     const [file,       setFile]       = useState(null)
     const [year,       setYear]       = useState(String(CURRENT_YEAR))
     const [variant,    setVariant]    = useState('A')
@@ -178,8 +180,7 @@ export default function AdminImport() {
                 try {
                     text = await pdfToMarkdownViaDatalab(file, setStatusMsg)
                 } catch (err) {
-                    // If key not configured, fall through silently
-                    if (!err.message.includes('DATALAB_API_KEY')) console.warn('Datalab:', err.message)
+                    console.warn('Datalab (falling back to pdfjs):', err.message)
                 }
             }
 
@@ -216,6 +217,7 @@ export default function AdminImport() {
             if (dbErr) throw new Error(dbErr.message)
 
             setSavedStats(calcStats(questions))
+            refreshTasks()
         } catch (err) {
             if (err.message !== 'no_questions') setError(err.message)
         } finally {
