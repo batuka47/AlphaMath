@@ -2,7 +2,7 @@ import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { useEffect } from 'react'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
-import Task from '../datas/Task'
+import { useTasks } from '../lib/TaskContext'
 import { supabase } from '../lib/supabase'
 
 // ── Scoring helpers ───────────────────────────────────────────────────────────
@@ -58,7 +58,7 @@ function Result() {
     // Compute task first — must be before any useEffect that references it
     const [yearPart, variant] = (year || '').split('-')
     const yearIndex = parseInt(yearPart) - 2006
-    const taskData  = Task()
+    const taskData  = useTasks()
     const task      = taskData.find(
         t => parseInt(t.id) === yearIndex && t.variant === variant
     )

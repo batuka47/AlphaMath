@@ -3,7 +3,7 @@ import PropTypes from 'prop-types'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
-import Task from '../datas/Task'
+import { useTasks } from '../lib/TaskContext'
 import Test from '../components/Test'
 import back from '../assets/icon/pointDown.svg'
 import { supabase } from '../lib/supabase'
@@ -168,7 +168,7 @@ function EYSHTest() {
     const { year }           = useParams()
     const [yearPart, variant] = year.split('-')
     const yearIndex           = parseInt(yearPart) - 2006
-    const taskData            = Task()
+    const taskData            = useTasks()
     const navigate            = useNavigate()
     const { user }            = useAuth()
 

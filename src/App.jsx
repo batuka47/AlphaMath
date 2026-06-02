@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './lib/AuthContext'
+import { TaskProvider } from './lib/TaskContext'
 import Home     from './pages/Home'
 import EYSH     from './pages/EYSH'
 import EYSHTest from './pages/EYSHTest'
@@ -16,10 +17,18 @@ import Collab    from './pages/Collab'
 import Contact   from './pages/Contact'
 import Privacy   from './pages/Privacy'
 import Editorial from './pages/Editorial'
+import AdminLayout    from './components/admin/AdminLayout'
+import AdminDashboard from './pages/admin/AdminDashboard'
+import AdminUsers     from './pages/admin/AdminUsers'
+import AdminResults   from './pages/admin/AdminResults'
+import AdminBookmarks from './pages/admin/AdminBookmarks'
+import AdminImport    from './pages/admin/AdminImport'
+import AdminExams     from './pages/admin/AdminExams'
 
 function App() {
   return (
     <AuthProvider>
+    <TaskProvider>
       <Router>
         <Routes>
           <Route path="/"                  element={<Home />} />
@@ -40,9 +49,21 @@ function App() {
           <Route path="/privacy"          element={<Privacy />} />
           <Route path="/editorial"        element={<Editorial />} />
           <Route path="/EYSH/guidelines"   element={<EYSH />} />
+
+          {/* Admin — access controlled in AdminLayout */}
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index                  element={<AdminDashboard />} />
+            <Route path="users"           element={<AdminUsers />} />
+            <Route path="results"         element={<AdminResults />} />
+            <Route path="bookmarks"       element={<AdminBookmarks />} />
+            <Route path="import"          element={<AdminImport />} />
+            <Route path="exams"           element={<AdminExams />} />
+          </Route>
+
           <Route path="*"                  element={<Home />} />
         </Routes>
       </Router>
+    </TaskProvider>
     </AuthProvider>
   )
 }

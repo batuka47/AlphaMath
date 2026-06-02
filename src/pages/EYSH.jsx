@@ -1,10 +1,10 @@
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 import MaterialChoose from '../components/materialChoose'
-import Task from '../datas/Task'
+import { useTasks } from '../lib/TaskContext'
 
 function EYSH() {
-    const taskData = Task()
+    const taskData = useTasks()
 
     // Build a map: year -> Set of available variants
     const availableMap = {}

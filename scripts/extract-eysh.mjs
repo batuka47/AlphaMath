@@ -97,7 +97,7 @@ Return ONLY a valid JavaScript object literal (no import/export, no variable dec
   problem: [
     {
       id: "1",
-      text: "Question text here",
+      text: "Question text here. Inline math example: $\\\\frac{a}{b}$",
       labelA: "option A text",
       labelB: "option B text",
       labelC: "option C text",
@@ -109,12 +109,17 @@ Return ONLY a valid JavaScript object literal (no import/export, no variable dec
   secondProblem: []
 }
 
-Rules:
-- For math formulas use MathML inline: <math class="font-semibold text-xl">...</math>
-- If a question has a diagram/image that you cannot reproduce as text, add img: "NEEDS_IMAGE" to that question object and describe the image briefly in a comment field: imgDesc: "brief description".
+Rules for math formulas:
+- Use LaTeX delimiters: $formula$ for inline, $$formula$$ for display/block.
+- Examples: $x^2 + y^2 = r^2$, $\\\\frac{1}{2}$, $\\\\sqrt{3}$, $\\\\log_2 8$
+- Do NOT use MathML or HTML tags for math. Only $...$ and $$...$$.
+- Escape backslashes in the JS string: \\\\frac, \\\\sqrt, \\\\log, etc.
+
+Other rules:
+- If a question has a diagram/image that you cannot reproduce as text, add img: "NEEDS_IMAGE" to that question object and imgDesc: "brief description of image".
 - Section 2 (нөхөх тест) problems go in secondProblem array. Each has: id, text (problem statement), and letter fields a/b/c... with their correct answers.
 - The scoring block should reflect the actual scoring for this year. Pre-2014 exams often use different scoring (e.g. all 3pts). Adjust accordingly.
-- Return ONLY the object literal. No extra text, no markdown.
+- Return ONLY the object literal. No extra text, no markdown, no code fences.
 `;
 }
 
