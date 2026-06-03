@@ -1,6 +1,7 @@
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 import MaterialChoose from '../components/materialChoose'
+import PdfToLatex from '../components/PdfToLatex'
 import { useTasks } from '../lib/TaskContext'
 
 function EYSH() {
@@ -70,6 +71,13 @@ function EYSH() {
                         </div>
                     ))}
                 </div>
+            </div>
+
+            {/* PDF → LaTeX */}
+            <div className="px-6 sm:px-12 lg:px-20 pb-20">
+                <h2 className="text-xl font-extrabold mb-2 text-gray-800">PDF → LaTeX хөрвүүлэгч</h2>
+                <p className="text-sm text-gray-500 mb-6">Шалгалтын PDF файлаа оруулбал LaTeX хэлбэрт хөрвүүлнэ.</p>
+                <PdfToLatex />
             </div>
 
             <Footer />
