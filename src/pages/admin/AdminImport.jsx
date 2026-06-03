@@ -19,6 +19,36 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
     import.meta.url
 ).href
 
+const SAMPLE_LATEX = `\\section*{1.}
+$x^{2} - 5x + 6 = 0$ тэгшитгэлийн шийдүүдийн нийлбэр хэд вэ?
+\\begin{enumerate}
+\\item $-5$
+\\item $5$
+\\item $6$
+\\item $-6$
+\\item $1$
+\\end{enumerate}
+
+\\section*{2.}
+$\\frac{1}{2} + \\frac{1}{3}$ утгыг ол.
+\\begin{enumerate}
+\\item $\\frac{1}{6}$
+\\item $\\frac{5}{6}$
+\\item $\\frac{2}{5}$
+\\item $\\frac{3}{5}$
+\\item $1$
+\\end{enumerate}
+
+\\section*{3.}
+$\\sqrt{144}$ утга хэд вэ?
+\\begin{enumerate}
+\\item $10$
+\\item $11$
+\\item $12$
+\\item $13$
+\\item $14$
+\\end{enumerate}`
+
 const CURRENT_YEAR = new Date().getFullYear()
 const YEARS        = Array.from({ length: CURRENT_YEAR - 2006 + 1 }, (_, i) => String(2006 + i))
 const VARIANTS     = ['A', 'B', 'C', 'D']
@@ -310,6 +340,14 @@ export default function AdminImport() {
                     <span>{error}</span>
                 </div>
             )}
+
+            <button
+                type="button"
+                onClick={() => { setLatex(SAMPLE_LATEX); setStage('reviewing') }}
+                className="w-full mb-3 text-xs text-gray-400 hover:text-[#E75234] underline underline-offset-2 transition-colors"
+            >
+                No PDF? Load sample data to test the review flow
+            </button>
 
             <Button
                 onClick={handleProcess}
