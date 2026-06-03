@@ -18,8 +18,18 @@ export function AuthProvider({ children }) {
         return () => subscription.unsubscribe()
     }, [])
 
+    async function saveUsername(username) {
+        const { data, error } = await supabase.auth.updateUser({
+            data: { username },
+        })
+        if (!error) setUser(data.user)
+        return error
+    }
+
+    const needsUsername = !!user && !user.user_metadata?.username
+
     return (
-        <AuthContext.Provider value={{ user, loading }}>
+        <AuthContext.Provider value={{ user, loading, needsUsername, saveUsername }}>
             {children}
         </AuthContext.Provider>
     )

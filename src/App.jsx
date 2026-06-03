@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './lib/AuthContext'
 import { TaskProvider } from './lib/TaskContext'
+import UsernameModal from './components/UsernameModal'
 import Home     from './pages/Home'
 import EYSH     from './pages/EYSH'
 import EYSHTest from './pages/EYSHTest'
@@ -29,6 +30,7 @@ function App() {
   return (
     <AuthProvider>
     <TaskProvider>
+      <UsernameModal />
       <Router>
         <Routes>
           <Route path="/"                  element={<Home />} />

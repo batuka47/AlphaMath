@@ -28,12 +28,13 @@ function Auth() {
 
     const handleSignup = async (e) => {
         e.preventDefault(); reset()
+        if (!name.trim())     { setError('Хэрэглэгчийн нэр оруулна уу.'); return }
         if (pass !== confirm) { setError('Нууц үг таарахгүй байна.'); return }
         if (pass.length < 6)  { setError('Нууц үг хамгийн багадаа 6 тэмдэгт байх ёстой.'); return }
         setLoading(true)
         const { error } = await supabase.auth.signUp({
             email, password: pass,
-            options: { data: { display_name: name || email.split('@')[0] } }
+            options: { data: { username: name.trim() } }
         })
         setLoading(false)
         if (error) { setError(error.message); return }
@@ -98,7 +99,7 @@ function Auth() {
                     {tab === 'signup' && (
                         <form onSubmit={handleSignup} className='flex flex-col gap-4'>
                             <input
-                                type='text' placeholder='Нэр (заавал биш)'
+                                type='text' required placeholder='Хэрэглэгчийн нэр'
                                 value={name} onChange={e => setName(e.target.value)}
                                 className='border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#E75234]'
                             />
