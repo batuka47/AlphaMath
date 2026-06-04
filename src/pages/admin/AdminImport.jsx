@@ -132,6 +132,68 @@ function DropZone({ onFile, file, disabled }) {
     )
 }
 
+// ── LaTeX live-preview field ──────────────────────────────────────────────────
+
+function renderMath(text) {
+    if (!text) return null
+    const parts = text.split(/(\$\$[\s\S]+?\$\$|\$[^$\n]+?\$)/g)
+    return parts.map((part, i) => {
+        if (part.startsWith('$$') && part.endsWith('$$')) {
+            const html = katex.renderToString(part.slice(2, -2), { throwOnError: false, displayMode: true })
+            return <span key={i} dangerouslySetInnerHTML={{ __html: html }} />
+        }
+        if (part.startsWith('$') && part.endsWith('$')) {
+            const html = katex.renderToString(part.slice(1, -1), { throwOnError: false, displayMode: false })
+            return <span key={i} dangerouslySetInnerHTML={{ __html: html }} />
+        }
+        return part
+    })
+}
+
+function LaTeXField({ value, onChange, placeholder, rows = 2, disabled, mono = false }) {
+    const hasLatex = value && value.includes('$')
+    return (
+        <div className="flex flex-col gap-1">
+            <textarea
+                value={value}
+                onChange={e => onChange(e.target.value)}
+                placeholder={placeholder}
+                rows={rows}
+                disabled={disabled}
+                spellCheck={false}
+                className={`w-full text-sm border border-gray-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-[#E75234] disabled:opacity-50 ${mono ? 'font-mono' : ''}`}
+            />
+            {hasLatex && (
+                <div className="px-3 py-2 bg-[#F5DAC6]/30 border border-[#E75234]/20 rounded-lg text-sm leading-relaxed text-gray-800">
+                    {renderMath(value)}
+                </div>
+            )}
+        </div>
+    )
+}
+
+function LaTeXInput({ value, onChange, placeholder, disabled }) {
+    const hasLatex = value && value.includes('$')
+    return (
+        <div className="flex flex-col gap-0.5">
+            <input
+                type="text"
+                value={value}
+                onChange={e => onChange(e.target.value)}
+                placeholder={placeholder}
+                disabled={disabled}
+                spellCheck={false}
+                className="flex-1 text-sm border border-gray-200 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#E75234] disabled:opacity-50"
+            />
+            {hasLatex && (
+                <div className="px-2 py-1 bg-[#F5DAC6]/30 border border-[#E75234]/20 rounded-md text-sm text-gray-800">
+                    {renderMath(value)}
+                </div>
+            )}
+        </div>
+    )
+}
+
 // ── Manual question helpers ───────────────────────────────────────────────────
 
 function emptyQuestion(num) {
@@ -459,26 +521,25 @@ export default function AdminImport() {
                                     )}
                                 </div>
 
-                                <textarea
-                                    placeholder="Question text (supports $LaTeX$)"
-                                    value={q.text}
-                                    onChange={e => updateQuestion(idx, 'text', e.target.value)}
-                                    disabled={manualSaving}
-                                    rows={2}
-                                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 mb-3 resize-none focus:outline-none focus:ring-1 focus:ring-[#E75234] disabled:opacity-50"
-                                />
+                                <div className="mb-3">
+                                    <LaTeXField
+                                        value={q.text}
+                                        onChange={val => updateQuestion(idx, 'text', val)}
+                                        placeholder="Question text — use $LaTeX$ for math"
+                                        rows={2}
+                                        disabled={manualSaving}
+                                    />
+                                </div>
 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
                                     {['A', 'B', 'C', 'D', 'E'].map(letter => (
                                         <div key={letter} className="flex items-center gap-2">
                                             <span className="text-xs font-bold text-gray-400 w-4">{letter}</span>
-                                            <input
-                                                type="text"
-                                                placeholder={`Option ${letter}`}
+                                            <LaTeXInput
                                                 value={q[`label${letter}`]}
-                                                onChange={e => updateQuestion(idx, `label${letter}`, e.target.value)}
+                                                onChange={val => updateQuestion(idx, `label${letter}`, val)}
+                                                placeholder={`Option ${letter}`}
                                                 disabled={manualSaving}
-                                                className="flex-1 text-sm border border-gray-200 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#E75234] disabled:opacity-50"
                                             />
                                         </div>
                                     ))}
