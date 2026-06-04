@@ -25,6 +25,7 @@ import AdminResults   from './pages/admin/AdminResults'
 import AdminBookmarks from './pages/admin/AdminBookmarks'
 import AdminImport    from './pages/admin/AdminImport'
 import AdminExams     from './pages/admin/AdminExams'
+import AdminLatex     from './pages/admin/AdminLatex'
 
 function App() {
   return (
@@ -60,6 +61,7 @@ function App() {
             <Route path="bookmarks"       element={<AdminBookmarks />} />
             <Route path="import"          element={<AdminImport />} />
             <Route path="exams"           element={<AdminExams />} />
+            <Route path="latex"           element={<AdminLatex />} />
           </Route>
 
           <Route path="*"                  element={<Home />} />

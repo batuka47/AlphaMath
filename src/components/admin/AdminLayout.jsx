@@ -9,6 +9,7 @@ import {
   BookMarked,
   ArrowLeft,
   LogOut,
+  Sigma,
 } from 'lucide-react'
 import { useAuth } from '@/lib/AuthContext'
 import { supabase } from '@/lib/supabase'
@@ -24,6 +25,7 @@ const NAV = [
   { to: '/admin/users',     label: 'Users',        icon: Users },
   { to: '/admin/results',   label: 'Test Results', icon: ClipboardList },
   { to: '/admin/bookmarks', label: 'Bookmarks',    icon: Bookmark },
+  { to: '/admin/latex',     label: 'LaTeX Editor', icon: Sigma },
 ]
 
 export default function AdminLayout() {
