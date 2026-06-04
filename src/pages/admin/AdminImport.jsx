@@ -4,7 +4,7 @@ import * as pdfjsLib from 'pdfjs-dist'
 import katex from 'katex'
 import 'katex/dist/katex.min.css'
 import {
-    Upload, FileText, CheckCircle, Loader2, AlertCircle,
+    Upload, FileText, CheckCircle, Loader2, AlertCircle, PlusCircle, Trash2, PenLine,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -132,28 +132,85 @@ function DropZone({ onFile, file, disabled }) {
     )
 }
 
+// ── Manual question helpers ───────────────────────────────────────────────────
+
+function emptyQuestion(num) {
+    return { id: String(num), text: '', labelA: '', labelB: '', labelC: '', labelD: '', labelE: '', answer: '' }
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 export default function AdminImport() {
     const refreshTasks = useTaskRefresh()
 
-    // form
-    const [file,    setFile]    = useState(null)
+    // shared
+    const [mode,    setMode]    = useState('pdf') // 'pdf' | 'manual'
     const [year,    setYear]    = useState(String(CURRENT_YEAR))
     const [variant, setVariant] = useState('A')
+    const [savedStats, setSavedStats] = useState(null)
 
-    // stages: idle | processing | reviewing | saving | saved | error
+    // pdf flow
+    const [file,      setFile]      = useState(null)
     const [stage,     setStage]     = useState('idle')
     const [statusMsg, setStatusMsg] = useState('')
     const [latex,     setLatex]     = useState('')
     const [tab,       setTab]       = useState('edit')
     const [error,     setError]     = useState('')
-    const [savedStats, setSavedStats] = useState(null)
+
+    // manual flow
+    const [manualQuestions, setManualQuestions] = useState([emptyQuestion(1)])
+    const [manualSaving,    setManualSaving]    = useState(false)
+    const [manualError,     setManualError]     = useState('')
+
+    function addQuestion() {
+        setManualQuestions(prev => [...prev, emptyQuestion(prev.length + 1)])
+    }
+
+    function removeQuestion(idx) {
+        setManualQuestions(prev => {
+            const next = prev.filter((_, i) => i !== idx)
+            return next.map((q, i) => ({ ...q, id: String(i + 1) }))
+        })
+    }
+
+    function updateQuestion(idx, field, value) {
+        setManualQuestions(prev => prev.map((q, i) => i === idx ? { ...q, [field]: value } : q))
+    }
+
+    async function handleManualSave() {
+        setManualSaving(true)
+        setManualError('')
+        try {
+            const questions = manualQuestions.filter(q => q.text.trim())
+            if (questions.length === 0) throw new Error('Add at least one question with text.')
+
+            const { error: dbErr } = await supabase
+                .from('exams')
+                .upsert({
+                    year:           parseInt(year),
+                    variant,
+                    scoring:        getScoringConfig(year, questions.length),
+                    problem:        questions,
+                    second_problem: [],
+                }, { onConflict: 'year,variant' })
+
+            if (dbErr) throw new Error(dbErr.message)
+
+            setSavedStats(calcStats(questions))
+            refreshTasks()
+            setStage('saved')
+        } catch (err) {
+            setManualError(err.message)
+        } finally {
+            setManualSaving(false)
+        }
+    }
 
     function reset() {
         setFile(null); setYear(String(CURRENT_YEAR)); setVariant('A')
         setStage('idle'); setStatusMsg(''); setLatex(''); setTab('edit')
         setError(''); setSavedStats(null)
+        setManualQuestions([emptyQuestion(1)]); setManualError('')
     }
 
     // ── Step 1: process PDF ───────────────────────────────────────────────────
@@ -306,58 +363,163 @@ export default function AdminImport() {
 
     // ── Idle / processing / error form ────────────────────────────────────────
 
+    const isProcessing = stage === 'processing'
+
     return (
-        <div className="px-8 py-8 max-w-xl">
+        <div className="px-8 py-8 max-w-3xl">
             <h1 className="text-2xl font-extrabold text-gray-900 mb-2">Add Exam</h1>
-            <p className="text-sm text-muted-foreground mb-8">
-                Upload the exam PDF. Gemini will convert it to LaTeX — you can review and edit before publishing.
+            <p className="text-sm text-muted-foreground mb-6">
+                Import from PDF or enter questions manually.
             </p>
 
+            {/* Mode tabs */}
+            <div className="flex rounded-xl overflow-hidden border border-gray-200 text-sm font-semibold w-fit mb-6">
+                <button onClick={() => setMode('pdf')} disabled={isProcessing}
+                    className={`flex items-center gap-2 px-5 py-2 transition-colors ${mode === 'pdf' ? 'bg-[#E75234] text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}>
+                    <Upload size={14} /> PDF Import
+                </button>
+                <button onClick={() => setMode('manual')} disabled={isProcessing}
+                    className={`flex items-center gap-2 px-5 py-2 transition-colors ${mode === 'manual' ? 'bg-[#E75234] text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}>
+                    <PenLine size={14} /> Manual Entry
+                </button>
+            </div>
+
+            {/* Year / Variant — shared */}
             <div className="flex gap-4 mb-6">
                 <div className="flex flex-col gap-1.5">
                     <label className="text-sm font-medium text-gray-700">Year</label>
-                    <select value={year} onChange={e => setYear(e.target.value)} disabled={stage === 'processing'}
+                    <select value={year} onChange={e => setYear(e.target.value)} disabled={isProcessing || manualSaving}
                         className="h-10 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50">
                         {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
                     </select>
                 </div>
                 <div className="flex flex-col gap-1.5">
                     <label className="text-sm font-medium text-gray-700">Variant</label>
-                    <select value={variant} onChange={e => setVariant(e.target.value)} disabled={stage === 'processing'}
+                    <select value={variant} onChange={e => setVariant(e.target.value)} disabled={isProcessing || manualSaving}
                         className="h-10 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50">
                         {VARIANTS.map(v => <option key={v} value={v}>{v}</option>)}
                     </select>
                 </div>
             </div>
 
-            <div className="mb-6">
-                <DropZone onFile={setFile} file={file} disabled={stage === 'processing'} />
-            </div>
+            {/* ── PDF mode ── */}
+            {mode === 'pdf' && (
+                <>
+                    <div className="mb-6">
+                        <DropZone onFile={setFile} file={file} disabled={isProcessing} />
+                    </div>
 
-            {stage === 'error' && (
-                <div className="mb-4 flex items-start gap-2 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-                    <AlertCircle size={15} className="flex-shrink-0 mt-0.5" />
-                    <span>{error}</span>
-                </div>
+                    {stage === 'error' && (
+                        <div className="mb-4 flex items-start gap-2 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+                            <AlertCircle size={15} className="flex-shrink-0 mt-0.5" />
+                            <span>{error}</span>
+                        </div>
+                    )}
+
+                    <button
+                        type="button"
+                        onClick={() => { setLatex(SAMPLE_LATEX); setStage('reviewing') }}
+                        className="w-full mb-3 text-xs text-gray-400 hover:text-[#E75234] underline underline-offset-2 transition-colors"
+                    >
+                        No PDF? Load sample data to test the review flow
+                    </button>
+
+                    <Button
+                        onClick={handleProcess}
+                        disabled={!file || isProcessing}
+                        className="w-full h-12 text-base font-bold bg-[#E75234] hover:bg-[#c94220] text-white disabled:opacity-50"
+                    >
+                        {isProcessing
+                            ? <><Loader2 size={18} className="animate-spin mr-2" />{statusMsg}</>
+                            : 'Process PDF'}
+                    </Button>
+                </>
             )}
 
-            <button
-                type="button"
-                onClick={() => { setLatex(SAMPLE_LATEX); setStage('reviewing') }}
-                className="w-full mb-3 text-xs text-gray-400 hover:text-[#E75234] underline underline-offset-2 transition-colors"
-            >
-                No PDF? Load sample data to test the review flow
-            </button>
+            {/* ── Manual mode ── */}
+            {mode === 'manual' && (
+                <>
+                    {manualError && (
+                        <div className="mb-4 flex items-start gap-2 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+                            <AlertCircle size={15} className="flex-shrink-0 mt-0.5" />
+                            <span>{manualError}</span>
+                        </div>
+                    )}
 
-            <Button
-                onClick={handleProcess}
-                disabled={!file || stage === 'processing'}
-                className="w-full h-12 text-base font-bold bg-[#E75234] hover:bg-[#c94220] text-white disabled:opacity-50"
-            >
-                {stage === 'processing'
-                    ? <><Loader2 size={18} className="animate-spin mr-2" />{statusMsg}</>
-                    : 'Process PDF'}
-            </Button>
+                    <div className="space-y-4 mb-6">
+                        {manualQuestions.map((q, idx) => (
+                            <div key={idx} className="border border-gray-200 rounded-xl p-4 bg-white shadow-sm">
+                                <div className="flex items-center justify-between mb-3">
+                                    <span className="text-sm font-bold text-[#2760A6]">Q{idx + 1}</span>
+                                    {manualQuestions.length > 1 && (
+                                        <button onClick={() => removeQuestion(idx)} disabled={manualSaving}
+                                            className="text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50">
+                                            <Trash2 size={15} />
+                                        </button>
+                                    )}
+                                </div>
+
+                                <textarea
+                                    placeholder="Question text (supports $LaTeX$)"
+                                    value={q.text}
+                                    onChange={e => updateQuestion(idx, 'text', e.target.value)}
+                                    disabled={manualSaving}
+                                    rows={2}
+                                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 mb-3 resize-none focus:outline-none focus:ring-1 focus:ring-[#E75234] disabled:opacity-50"
+                                />
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
+                                    {['A', 'B', 'C', 'D', 'E'].map(letter => (
+                                        <div key={letter} className="flex items-center gap-2">
+                                            <span className="text-xs font-bold text-gray-400 w-4">{letter}</span>
+                                            <input
+                                                type="text"
+                                                placeholder={`Option ${letter}`}
+                                                value={q[`label${letter}`]}
+                                                onChange={e => updateQuestion(idx, `label${letter}`, e.target.value)}
+                                                disabled={manualSaving}
+                                                className="flex-1 text-sm border border-gray-200 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#E75234] disabled:opacity-50"
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs font-medium text-gray-600">Answer:</span>
+                                    <select
+                                        value={q.answer}
+                                        onChange={e => updateQuestion(idx, 'answer', e.target.value)}
+                                        disabled={manualSaving}
+                                        className="text-sm border border-gray-200 rounded-md px-2 py-1 focus:outline-none focus:ring-1 focus:ring-[#E75234] disabled:opacity-50"
+                                    >
+                                        <option value="">— select —</option>
+                                        {['A', 'B', 'C', 'D', 'E'].map(l => <option key={l} value={l}>{l}</option>)}
+                                    </select>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={addQuestion}
+                        disabled={manualSaving}
+                        className="flex items-center gap-2 text-sm text-[#2760A6] hover:text-[#1a4a80] font-medium mb-6 disabled:opacity-50 transition-colors"
+                    >
+                        <PlusCircle size={16} /> Add Question
+                    </button>
+
+                    <Button
+                        onClick={handleManualSave}
+                        disabled={manualSaving}
+                        className="w-full h-12 text-base font-bold bg-[#E75234] hover:bg-[#c94220] text-white disabled:opacity-50"
+                    >
+                        {manualSaving
+                            ? <><Loader2 size={18} className="animate-spin mr-2" />Saving…</>
+                            : `Save ${manualQuestions.filter(q => q.text.trim()).length || 0} Question${manualQuestions.filter(q => q.text.trim()).length !== 1 ? 's' : ''} to Site`}
+                    </Button>
+                </>
+            )}
         </div>
     )
 }
