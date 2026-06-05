@@ -81,6 +81,7 @@ function renderLatexToHtml(src) {
         }
         return seg
             .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/%%% ЗАДГАЙ ДААЛГАВАР %%%/g, '<div class="my-4 py-2 px-4 bg-blue-50 border-l-4 border-[#2760A6] text-[#2760A6] font-bold text-sm">— Хоёрдугаар хэсэг: Задгай даалгавар —</div>')
             .replace(/\\section\*\{([^}]*)\}/g, '<h3 class="text-base font-bold mt-4 mb-1 text-[#2760A6]">$1</h3>')
             .replace(/\\begin\{enumerate\}/g, '<ol class="list-decimal list-inside space-y-1 pl-2">')
             .replace(/\\end\{enumerate\}/g,   '</ol>')
@@ -200,11 +201,26 @@ function LaTeXInput({ value, onChange, placeholder, disabled }) {
 
 const OPTION_LETTERS = ['A', 'B', 'C', 'D', 'E']
 
+const SECTION2_MARKER = '%%% ЗАДГАЙ ДААЛГАВАР %%%'
+
+// Returns { section1: string, section2: string }
+function splitLatexSections(src) {
+    const idx = src.indexOf(SECTION2_MARKER)
+    if (idx === -1) return { section1: src, section2: '' }
+    return {
+        section1: src.slice(0, idx),
+        section2: src.slice(idx + SECTION2_MARKER.length),
+    }
+}
+
 function latexToPlainText(src) {
+    // Only convert Section 1 (MC questions) — stop at the задгай marker
+    const { section1 } = splitLatexSections(src)
+
     // Expand inline \item chains onto separate lines before splitting
-    const expanded = src
-        .replace(/\\item\s*(?=\\item)/g, '\\item\n')   // back-to-back \item
-        .replace(/(\\end\{enumerate\})\s*(?=\\item)/g, '$1\n')  // \end right before \item
+    const expanded = section1
+        .replace(/\\item\s*(?=\\item)/g, '\\item\n')
+        .replace(/(\\end\{enumerate\})\s*(?=\\item)/g, '$1\n')
 
     const lines = expanded.split('\n')
     const out   = []
@@ -219,7 +235,6 @@ function latexToPlainText(src) {
         if (sec) { out.push(`${sec[1]}.`); optionIndex = 0; continue }
 
         // \item [optional label] text → "A) text"
-        // Handle the case where \item appears mid-line (e.g. after \begin{enumerate})
         if (line.includes('\\item')) {
             const items = line.split(/\\item(?:\[.*?\])?/).slice(1)
             for (const itemText of items) {

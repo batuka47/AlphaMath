@@ -12,32 +12,54 @@ const ANSWER_OPTIONS = ['', 'A', 'B', 'C', 'D', 'E']
 // ── Question editor ───────────────────────────────────────────────────────────
 
 function QuestionEditor({ question, onChange, onRemove }) {
-    const q = question
-    const set = (field, val) => onChange({ ...q, [field]: val })
+    const q    = question
+    const set  = (field, val) => onChange({ ...q, [field]: val })
+    const type = q.type || 'mc'
 
     return (
         <div className="border border-gray-100 rounded-xl p-4 flex flex-col gap-3 bg-white">
-            <div className="flex items-center gap-2">
-                <span className="text-xs font-bold bg-[#F5DAC6] text-[#E75234] rounded-full px-2 py-0.5 w-fit">
+            {/* header row: id badge + type toggle + answer selector/delete */}
+            <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-bold bg-[#F5DAC6] text-[#E75234] rounded-full px-2 py-0.5">
                     #{q.id}
                 </span>
-                <select
-                    value={q.answer}
-                    onChange={e => set('answer', e.target.value)}
-                    className="ml-auto h-7 rounded-md border border-gray-200 bg-white px-2 text-xs font-bold focus:outline-none focus:ring-1 focus:ring-[#E75234]"
-                >
-                    {ANSWER_OPTIONS.map(o => (
-                        <option key={o} value={o}>{o || '— no answer —'}</option>
-                    ))}
-                </select>
+
+                {/* type toggle */}
+                <div className="flex rounded-lg overflow-hidden border border-gray-200 text-xs font-semibold">
+                    <button
+                        type="button"
+                        onClick={() => set('type', 'mc')}
+                        className={`px-2.5 py-1 transition-colors ${type !== 'text' ? 'bg-[#E75234] text-white' : 'bg-white text-gray-400 hover:bg-gray-50'}`}
+                    >A–E</button>
+                    <button
+                        type="button"
+                        onClick={() => set('type', 'text')}
+                        className={`px-2.5 py-1 transition-colors ${type === 'text' ? 'bg-[#E75234] text-white' : 'bg-white text-gray-400 hover:bg-gray-50'}`}
+                    >Text</button>
+                </div>
+
+                {/* answer selector (MC only) */}
+                {type !== 'text' && (
+                    <select
+                        value={q.answer}
+                        onChange={e => set('answer', e.target.value)}
+                        className="ml-auto h-7 rounded-md border border-gray-200 bg-white px-2 text-xs font-bold focus:outline-none focus:ring-1 focus:ring-[#E75234]"
+                    >
+                        {ANSWER_OPTIONS.map(o => (
+                            <option key={o} value={o}>{o || '— no answer —'}</option>
+                        ))}
+                    </select>
+                )}
+
                 {onRemove && (
                     <button onClick={onRemove} title="Delete question"
-                        className="text-gray-300 hover:text-red-400 transition-colors ml-1">
+                        className={`text-gray-300 hover:text-red-400 transition-colors ${type !== 'text' ? 'ml-1' : 'ml-auto'}`}>
                         <Trash2 size={14} />
                     </button>
                 )}
             </div>
 
+            {/* question text */}
             <textarea
                 rows={2}
                 value={q.text}
@@ -46,22 +68,39 @@ function QuestionEditor({ question, onChange, onRemove }) {
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-[#E75234]"
             />
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {['A','B','C','D','E'].map(letter => (
-                    <div key={letter} className="flex items-center gap-2">
-                        <span className={`text-xs font-bold w-5 shrink-0 ${q.answer === letter ? 'text-[#E75234]' : 'text-gray-400'}`}>
-                            {letter}
-                        </span>
-                        <input
-                            type="text"
-                            value={q[`label${letter}`] || ''}
-                            onChange={e => set(`label${letter}`, e.target.value)}
-                            placeholder={`Option ${letter}`}
-                            className="flex-1 h-8 rounded-lg border border-gray-200 px-2 text-xs focus:outline-none focus:ring-1 focus:ring-[#E75234]"
-                        />
-                    </div>
-                ))}
-            </div>
+            {/* MC: A–E option inputs */}
+            {type !== 'text' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {['A','B','C','D','E'].map(letter => (
+                        <div key={letter} className="flex items-center gap-2">
+                            <span className={`text-xs font-bold w-5 shrink-0 ${q.answer === letter ? 'text-[#E75234]' : 'text-gray-400'}`}>
+                                {letter}
+                            </span>
+                            <input
+                                type="text"
+                                value={q[`label${letter}`] || ''}
+                                onChange={e => set(`label${letter}`, e.target.value)}
+                                placeholder={`Option ${letter}`}
+                                className="flex-1 h-8 rounded-lg border border-gray-200 px-2 text-xs focus:outline-none focus:ring-1 focus:ring-[#E75234]"
+                            />
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {/* Text: free-form answer input */}
+            {type === 'text' && (
+                <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-gray-500 shrink-0">Answer:</span>
+                    <input
+                        type="text"
+                        value={q.answer || ''}
+                        onChange={e => set('answer', e.target.value)}
+                        placeholder="Enter the correct answer"
+                        className="flex-1 h-8 rounded-lg border border-gray-200 px-2 text-xs focus:outline-none focus:ring-1 focus:ring-[#E75234]"
+                    />
+                </div>
+            )}
         </div>
     )
 }
@@ -82,7 +121,7 @@ function EditView({ exam, onBack }) {
     function addQuestion() {
         setQuestions(prev => {
             const nextId = String(prev.length + 1)
-            return [...prev, { id: nextId, text: '', labelA: '', labelB: '', labelC: '', labelD: '', labelE: '', answer: '' }]
+            return [...prev, { id: nextId, type: 'mc', text: '', labelA: '', labelB: '', labelC: '', labelD: '', labelE: '', answer: '' }]
         })
         setSaved(false)
     }
