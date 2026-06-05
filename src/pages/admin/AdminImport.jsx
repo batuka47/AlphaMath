@@ -664,23 +664,36 @@ export default function AdminImport() {
                                                 <span className="text-[10px] text-gray-400">click to enlarge</span>
                                             </div>
                                             {/* Crop controls */}
-                                            <div className="flex-1 flex flex-col gap-2 min-w-0">
-                                                {[
-                                                    { label: 'Top',   pct: Math.round(y1*100), min: 0,  max: 95, onChange: v => setFA({ y1: v, y2: Math.max(v+0.05, y2) }) },
-                                                    { label: 'Bot',   pct: Math.round(y2*100), min: 5,  max: 100, onChange: v => setFA({ y2: v, y1: Math.min(y1, v-0.05) }) },
-                                                    { label: 'Left',  pct: Math.round(x1*100), min: 0,  max: 95, onChange: v => setFA({ x1: v, x2: Math.max(v+0.05, x2) }) },
-                                                    { label: 'Right', pct: Math.round(x2*100), min: 5,  max: 100, onChange: v => setFA({ x2: v, x1: Math.min(x1, v-0.05) }) },
-                                                ].map(({ label, pct, min, max, onChange }) => (
-                                                    <div key={label} className="flex items-center gap-2">
-                                                        <span className="text-xs text-gray-500 w-14 shrink-0">{label} {pct}%</span>
-                                                        <input type="range" min={min} max={max} step="1"
-                                                            value={pct}
-                                                            disabled={isSaving}
-                                                            onChange={e => onChange(parseInt(e.target.value) / 100)}
-                                                            className="flex-1 accent-[#2760A6]"
-                                                        />
-                                                    </div>
-                                                ))}
+                                            <div className="flex-1 flex flex-col gap-1.5 min-w-0">
+                                                {/* Top */}
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xs text-gray-500 w-16 shrink-0">Top {Math.round(y1*100)}%</span>
+                                                    <input type="range" min={0} max={95} step={1} value={Math.round(y1*100)} disabled={isSaving}
+                                                        onChange={e => { const v=parseInt(e.target.value)/100; setFA({ y1: v, y2: Math.max(v+0.05, y2) }) }}
+                                                        className="flex-1 accent-[#2760A6]" />
+                                                </div>
+                                                {/* Bot */}
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xs text-gray-500 w-16 shrink-0">Bot {Math.round(y2*100)}%</span>
+                                                    <input type="range" min={5} max={100} step={1} value={Math.round(y2*100)} disabled={isSaving}
+                                                        onChange={e => { const v=parseInt(e.target.value)/100; setFA({ y2: v, y1: Math.min(y1, v-0.05) }) }}
+                                                        className="flex-1 accent-[#2760A6]" />
+                                                </div>
+                                                <div className="border-t border-gray-100 my-0.5" />
+                                                {/* Left */}
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xs text-[#E75234] font-semibold w-16 shrink-0">← Left {Math.round(x1*100)}%</span>
+                                                    <input type="range" min={0} max={95} step={1} value={Math.round(x1*100)} disabled={isSaving}
+                                                        onChange={e => { const v=parseInt(e.target.value)/100; setFA({ x1: v, x2: Math.max(v+0.05, x2) }) }}
+                                                        className="flex-1 accent-[#E75234]" />
+                                                </div>
+                                                {/* Right */}
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xs text-[#E75234] font-semibold w-16 shrink-0">Right {Math.round(x2*100)}% →</span>
+                                                    <input type="range" min={5} max={100} step={1} value={Math.round(x2*100)} disabled={isSaving}
+                                                        onChange={e => { const v=parseInt(e.target.value)/100; setFA({ x2: v, x1: Math.min(x1, v-0.05) }) }}
+                                                        className="flex-1 accent-[#E75234]" />
+                                                </div>
                                                 <select
                                                     value={pageIdx}
                                                     onChange={e => setFA({ pageIdx: parseInt(e.target.value) })}

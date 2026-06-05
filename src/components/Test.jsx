@@ -136,35 +136,30 @@ function Test(props) {
     return (
         <div className="w-full mt-10 border-b border-gray-100 pb-6">
 
-            {/* ── Desktop: side-by-side row ── */}
-            <div className="hidden lg:flex lg:flex-row lg:gap-4">
-
-                {/* Left 3/4 — question number + text + options */}
-                <div className="w-3/4">
-                    {questionHeader}
-                    <div className="flex flex-row flex-wrap gap-x-4 gap-y-1 mt-3">
-                        {['A','B','C','D','E'].map(letter => (
-                            <RadioButton
-                                key={letter}
-                                value={letter}
-                                label={safeParse(props[`label${letter}`])}
-                                checked={selectedValue === letter}
-                                onChange={handleChange}
-                            />
-                        ))}
-                    </div>
-                </div>
-
-                {/* Right 1/4 — image column (always present, empty if no image) */}
-                <div className="w-1/4 flex items-start justify-center pt-1">
-                    {props.img && (
+            {/* ── Desktop ── */}
+            <div className="hidden lg:block">
+                {questionHeader}
+                {props.img && (
+                    <div className="my-3">
                         <img
                             ref={imageRef}
                             src={props.img}
-                            className="w-full h-auto object-contain max-h-48"
+                            className="max-w-xl w-auto h-auto object-contain rounded-lg border border-gray-100 cursor-zoom-in"
                             alt=""
+                            onClick={() => window.open(props.img, '_blank')}
                         />
-                    )}
+                    </div>
+                )}
+                <div className="flex flex-row flex-wrap gap-x-4 gap-y-1 mt-3">
+                    {['A','B','C','D','E'].map(letter => (
+                        <RadioButton
+                            key={letter}
+                            value={letter}
+                            label={safeParse(props[`label${letter}`])}
+                            checked={selectedValue === letter}
+                            onChange={handleChange}
+                        />
+                    ))}
                 </div>
             </div>
 
@@ -172,12 +167,12 @@ function Test(props) {
             <div className="flex flex-col lg:hidden">
                 {mobileHeader}
 
-                {/* Image — full width on mobile */}
+                {/* Image */}
                 {props.img && (
                     <div className="w-full mb-4">
                         <img
                             src={props.img}
-                            className="w-full h-auto object-contain max-h-56"
+                            className="w-full h-auto object-contain max-h-72 rounded-lg border border-gray-100"
                             alt=""
                         />
                     </div>
