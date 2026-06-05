@@ -41,7 +41,7 @@ function MaterialChoose({ year, availableVariants }) {
 
 MaterialChoose.propTypes = {
     year:              PropTypes.number.isRequired,
-    availableVariants: PropTypes.instanceOf(Set),
+    availableVariants: PropTypes.object,
 }
 
 MaterialChoose.defaultProps = {

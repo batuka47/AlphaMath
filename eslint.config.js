@@ -6,6 +6,11 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 
 export default [
   { ignores: ['dist'] },
+  // Node.js serverless functions — need process, Buffer, etc.
+  {
+    files: ['api/**/*.js'],
+    languageOptions: { globals: { ...globals.browser, ...globals.node } },
+  },
   {
     files: ['**/*.{js,jsx}'],
     languageOptions: {

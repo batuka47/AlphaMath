@@ -1,27 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import PropTypes from 'prop-types'
 import parse, { domToReact } from 'html-react-parser'
-import katex from 'katex'
-import 'katex/dist/katex.min.css'
 import RadioButton from './RadioBtn'
-
-// ── KaTeX renderer (for LaTeX strings like $\frac{1}{2}$) ────────────────────
-function KaTeXSpan({ latex, display }) {
-    const html = katex.renderToString(latex, { throwOnError: false, displayMode: display })
-    return <span dangerouslySetInnerHTML={{ __html: html }} />
-}
-
-// Split "some text $\frac{a}{b}$ more text" into rendered segments
-function renderLatex(text) {
-    const parts = text.split(/(\$\$[\s\S]+?\$\$|\$[^$\n]+?\$)/g)
-    return parts.map((part, i) => {
-        if (part.startsWith('$$') && part.endsWith('$$'))
-            return <KaTeXSpan key={i} latex={part.slice(2, -2)} display={true} />
-        if (part.startsWith('$') && part.endsWith('$'))
-            return <KaTeXSpan key={i} latex={part.slice(1, -1)} display={false} />
-        return part
-    })
-}
+import { renderLatex } from '@/lib/renderMath'
 
 // ── Math inline fix ───────────────────────────────────────────────────────────
 function injectMathCSS() {

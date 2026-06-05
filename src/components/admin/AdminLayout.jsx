@@ -15,7 +15,6 @@ import { useAuth } from '@/lib/AuthContext'
 import { supabase } from '@/lib/supabase'
 import { ADMIN_EMAILS } from '@/lib/adminConfig'
 import { Separator } from '@/components/ui/separator'
-import { Button } from '@/components/ui/button'
 import logo from '@/assets/logo.svg'
 
 const NAV = [

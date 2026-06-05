@@ -4,46 +4,7 @@ import Header from '../components/Header'
 import Footer from '../components/Footer'
 import { useTasks } from '../lib/TaskContext'
 import { supabase } from '../lib/supabase'
-
-// ── Scoring helpers ───────────────────────────────────────────────────────────
-
-// Default scoring when task has no scoring field
-function getDefaultScoring(totalQ) {
-    if (totalQ >= 36) {
-        return {
-            section1: [
-                { from: 1,  to: 8,  points: 1 },
-                { from: 9,  to: 28, points: 2 },
-                { from: 29, to: 36, points: 3 },
-            ],
-            section2Points: 5,
-        }
-    }
-    // Older years without explicit scoring: treat all as 3pt
-    return {
-        section1: [{ from: 1, to: totalQ, points: 3 }],
-        section2Points: 5,
-    }
-}
-
-function getPointsForQuestion(questionId, scoring) {
-    const id = parseInt(questionId)
-    for (const range of scoring.section1) {
-        if (id >= range.from && id <= range.to) return range.points
-    }
-    return 1
-}
-
-// Performance grade
-function getGrade(pct) {
-    if (pct >= 90) return { label: 'Онцлог',    color: 'text-purple-600' }
-    if (pct >= 75) return { label: 'Сайн',       color: 'text-green-600'  }
-    if (pct >= 55) return { label: 'Дунд',       color: 'text-yellow-600' }
-    if (pct >= 40) return { label: 'Хангалттай', color: 'text-orange-500' }
-    return              { label: 'Хангалтгүй',  color: 'text-red-500'    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
+import { getDefaultScoring, getPointsForQuestion, getGrade } from '../lib/scoring'
 function Result() {
     const location = useLocation()
     const navigate = useNavigate()

@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useTaskRefresh } from '@/lib/TaskContext'
 import * as pdfjsLib from 'pdfjs-dist'
 import katex from 'katex'
@@ -623,41 +624,42 @@ export default function AdminImport() {
                                 .sort((a, b) => parseFloat(a[0]) - parseFloat(b[0]))
                                 .map(([qId, { pageIdx, y1, y2, x1 = 0, x2 = 1 }]) => {
                                     const dim = pageDims[pageIdx] || { w: 892, h: 1263 }
-                                    const aspect = dim.w / dim.h          // ~0.706 for A4
-                                    const previewW  = 160
-                                    // Scale so the cropped region fills previewW
-                                    const imgDispW  = previewW / (x2 - x1)
-                                    const imgDispH  = imgDispW / aspect
-                                    const cropDispH = Math.round(imgDispH * (y2 - y1))
+                                    const aspect = dim.w / dim.h
+                                    // Thumbnail: always show full page at fixed width
+                                    const thumbW = 120
+                                    const thumbH = Math.round(thumbW / aspect)
                                     const setFA = patch => setFigureAssignments(prev => ({
                                         ...prev, [qId]: { ...prev[qId], ...patch }
                                     }))
                                     return (
                                         <div key={qId} className="flex items-start gap-4 bg-white rounded-xl border border-blue-100 p-3 shadow-sm">
-                                            {/* Live crop preview */}
+                                            {/* Full-page thumbnail with crop overlay */}
                                             <div className="shrink-0 flex flex-col items-center gap-1">
                                                 <span className="text-xs font-bold text-[#E75234]">Q{qId}</span>
                                                 <div
                                                     onClick={() => setLightbox({ qId })}
                                                     title="Click to enlarge"
                                                     style={{
-                                                        width: previewW, height: Math.max(20, cropDispH),
-                                                        overflow: 'hidden', borderRadius: 6,
-                                                        border: '1px solid #e5e7eb', position: 'relative',
-                                                        cursor: 'zoom-in',
+                                                        width: thumbW, height: thumbH,
+                                                        position: 'relative', overflow: 'hidden',
+                                                        borderRadius: 4, border: '1px solid #e5e7eb',
+                                                        cursor: 'zoom-in', flexShrink: 0,
                                                     }}
                                                 >
-                                                    <img
-                                                        src={pageDataUrls[pageIdx]}
-                                                        alt=""
-                                                        style={{
-                                                            position: 'absolute',
-                                                            width:  Math.round(imgDispW),
-                                                            height: Math.round(imgDispH),
-                                                            left:  -Math.round(imgDispW * x1),
-                                                            top:   -Math.round(imgDispH * y1),
-                                                        }}
-                                                    />
+                                                    {/* Full page image */}
+                                                    <img src={pageDataUrls[pageIdx]} alt=""
+                                                        style={{ width: thumbW, height: thumbH, display: 'block' }} />
+                                                    {/* Dark overlay on non-crop areas */}
+                                                    {/* top band */}
+                                                    <div style={{ position:'absolute', top:0, left:0, right:0, height: Math.round(y1*thumbH), background:'rgba(0,0,0,0.55)' }} />
+                                                    {/* bottom band */}
+                                                    <div style={{ position:'absolute', bottom:0, left:0, right:0, height: Math.round((1-y2)*thumbH), background:'rgba(0,0,0,0.55)' }} />
+                                                    {/* left band (between y1 and y2) */}
+                                                    <div style={{ position:'absolute', top: Math.round(y1*thumbH), height: Math.round((y2-y1)*thumbH), left:0, width: Math.round(x1*thumbW), background:'rgba(0,0,0,0.55)' }} />
+                                                    {/* right band */}
+                                                    <div style={{ position:'absolute', top: Math.round(y1*thumbH), height: Math.round((y2-y1)*thumbH), right:0, width: Math.round((1-x2)*thumbW), background:'rgba(0,0,0,0.55)' }} />
+                                                    {/* crop region border */}
+                                                    <div style={{ position:'absolute', top: Math.round(y1*thumbH), left: Math.round(x1*thumbW), width: Math.round((x2-x1)*thumbW), height: Math.round((y2-y1)*thumbH), border:'2px solid #E75234', boxSizing:'border-box' }} />
                                                 </div>
                                                 <span className="text-[10px] text-gray-400">click to enlarge</span>
                                             </div>
@@ -702,56 +704,41 @@ export default function AdminImport() {
                     </div>
                 )}
 
-                {/* ── Lightbox ── */}
-                {lightbox && (() => {
+                {/* Lightbox rendered via portal so it escapes overflow containers */}
+                {lightbox && figureAssignments[lightbox.qId] && createPortal((() => {
                     const { qId } = lightbox
-                    const fa = figureAssignments[qId]
-                    if (!fa) return null
-                    const { pageIdx, y1, y2, x1 = 0, x2 = 1 } = fa
+                    const { pageIdx, y1, y2, x1 = 0, x2 = 1 } = figureAssignments[qId]
                     const dim = pageDims[pageIdx] || { w: 892, h: 1263 }
                     const aspect = dim.w / dim.h
-                    const lbW = 480
+                    const lbW = 500
                     const imgW = lbW / (x2 - x1)
                     const imgH = imgW / aspect
                     const cropH = Math.round(imgH * (y2 - y1))
                     return (
                         <div
-                            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
+                            style={{ position:'fixed', inset:0, zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(0,0,0,0.72)' }}
                             onClick={() => setLightbox(null)}
                         >
                             <div
-                                className="relative bg-white rounded-2xl shadow-2xl p-4 flex flex-col items-center gap-3"
+                                style={{ background:'#fff', borderRadius:16, padding:16, display:'flex', flexDirection:'column', gap:12, boxShadow:'0 25px 60px rgba(0,0,0,0.4)', maxWidth:'95vw' }}
                                 onClick={e => e.stopPropagation()}
                             >
-                                <div className="flex items-center justify-between w-full">
-                                    <span className="text-sm font-bold text-[#E75234]">Q{qId} — Figure</span>
-                                    <button
-                                        onClick={() => setLightbox(null)}
-                                        className="text-gray-400 hover:text-gray-700 transition-colors text-lg leading-none"
-                                    >✕</button>
+                                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                                    <span style={{ fontSize:14, fontWeight:700, color:'#E75234' }}>Q{qId} — Figure</span>
+                                    <button onClick={() => setLightbox(null)} style={{ background:'none', border:'none', cursor:'pointer', fontSize:20, color:'#9ca3af', lineHeight:1 }}>✕</button>
                                 </div>
-                                <div style={{
-                                    width: lbW, height: Math.max(40, cropH),
-                                    overflow: 'hidden', borderRadius: 8,
-                                    border: '1px solid #e5e7eb', position: 'relative',
-                                }}>
+                                <div style={{ width:lbW, height:Math.max(40, cropH), overflow:'hidden', borderRadius:8, border:'1px solid #e5e7eb', position:'relative' }}>
                                     <img
                                         src={pageDataUrls[pageIdx]}
                                         alt=""
-                                        style={{
-                                            position: 'absolute',
-                                            width:  Math.round(imgW),
-                                            height: Math.round(imgH),
-                                            left:  -Math.round(imgW * x1),
-                                            top:   -Math.round(imgH * y1),
-                                        }}
+                                        style={{ position:'absolute', width:Math.round(imgW), height:Math.round(imgH), left:-Math.round(imgW*x1), top:-Math.round(imgH*y1) }}
                                     />
                                 </div>
-                                <p className="text-xs text-gray-400">Click outside or press Esc to close</p>
+                                <p style={{ fontSize:11, color:'#9ca3af', textAlign:'center', margin:0 }}>Click outside or press Esc to close</p>
                             </div>
                         </div>
                     )
-                })()}
+                })(), document.body)}
 
                 {tab === 'edit' && (
                     <textarea

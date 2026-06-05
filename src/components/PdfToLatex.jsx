@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react'
+import { useRef, useState } from 'react'
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs'
 import katex from 'katex'
 import 'katex/dist/katex.min.css'

@@ -1,5 +1,6 @@
 // ЭЕШ Математик 2024 он — A хувилбар
 // Answer keys: 36/36 filled ✅
+/* eslint-disable no-useless-escape */
 
 const task2024A = {
 id: "18",

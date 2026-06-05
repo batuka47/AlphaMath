@@ -23,9 +23,9 @@ CRITICAL RULES (repeat every response):
 FIGURE DETECTION — very important:
 When a question references a visual (diagram, graph, geometric figure, coordinate plane, etc.):
 - Find the PDF page number where it appears (use the "=== PAGE N ===" markers in the input text)
-- Output % figure: page N on a NEW line immediately after \section*{questionNumber.}
+- Output % figure: page N on a NEW line immediately after \\section*{questionNumber.}
 Example:
-\section*{7.}
+\\section*{7.}
 % figure: page 2
 Зурагт үзүүлсэн гурвалжны талбайг ол.
 

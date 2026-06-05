@@ -8,25 +8,8 @@ import Test from '../components/Test'
 import back from '../assets/icon/pointDown.svg'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
-
-// ── Points per question by year format ───────────────────────────────────────
-// 2014+ standard format: Q1-8=1pt, Q9-28=2pt, Q29-36=3pt (total 72)
-// Pre-2014: simpler / flat scoring (varies per year, approximated here)
-function getPointsForQuestion(questionId, totalQuestions) {
-    const id = parseInt(questionId)
-    if (totalQuestions >= 36) {
-        if (id <= 8)  return 1
-        if (id <= 28) return 2
-        return 3
-    }
-    // Pre-2014: flat 3 points (best approximation without per-question data)
-    return 3
-}
-
-function getTotalPossibleScore(questions) {
-    return questions.reduce((sum, q) =>
-        sum + getPointsForQuestion(q.id, questions.length), 0)
-}
+import { getDefaultScoring, getTotalPossibleScore } from '../lib/scoring'
+import { renderLatex } from '../lib/renderMath'
 
 // ── Section structure by total question count ─────────────────────────────────
 function getSections(totalQ) {
@@ -71,7 +54,7 @@ function SecondSectionQuestion({ problem, answers, onAnswerChange }) {
                     />
                 )
             }
-            return <span key={i}>{part}</span>
+            return <span key={i}>{renderLatex(part)}</span>
         })
     }
 
@@ -265,7 +248,8 @@ function EYSHTest() {
     const secondProb = task.secondProblem || []
     const totalQ     = tasks.length
     const sections   = getSections(totalQ)
-    const totalScore = getTotalPossibleScore(tasks)
+    const scoring    = task.scoring || getDefaultScoring(totalQ)
+    const totalScore = getTotalPossibleScore(tasks, scoring)
     const answeredCount = Object.keys(selectedAnswers).length
 
     const handleAnswerSelect = (questionId, answer) =>

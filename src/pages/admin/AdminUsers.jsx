@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { Search } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
 // Aggregate test_results rows by user_id

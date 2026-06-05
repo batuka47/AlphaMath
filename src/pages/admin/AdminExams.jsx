@@ -107,11 +107,75 @@ function QuestionEditor({ question, onChange, onRemove }) {
 
 // ── Edit view ─────────────────────────────────────────────────────────────────
 
+const ANSWER_SLOTS = ['a','b','c','d','e','f']
+
+function SecondProblemEditor({ question, onChange, onRemove }) {
+    const q = question
+    const set = (field, val) => onChange({ ...q, [field]: val })
+    const usedSlots = ANSWER_SLOTS.filter(s => s in q)
+
+    const addSlot = () => {
+        const next = ANSWER_SLOTS.find(s => !(s in q))
+        if (next) onChange({ ...q, [next]: '' })
+    }
+    const removeSlot = (s) => {
+        const copy = { ...q }
+        delete copy[s]
+        onChange(copy)
+    }
+
+    return (
+        <div className="border border-gray-100 rounded-xl p-4 flex flex-col gap-3 bg-white">
+            <div className="flex items-center gap-2">
+                <span className="text-xs font-bold bg-blue-100 text-[#2760A6] rounded-full px-2 py-0.5">#{q.id}</span>
+                {onRemove && (
+                    <button onClick={onRemove} className="ml-auto text-gray-300 hover:text-red-400 transition-colors">
+                        <Trash2 size={14} />
+                    </button>
+                )}
+            </div>
+            <textarea
+                rows={3}
+                value={q.text || ''}
+                onChange={e => set('text', e.target.value)}
+                placeholder="Question text (may contain $LaTeX$ and [a], [b] blanks)"
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-[#2760A6]"
+            />
+            <div className="flex flex-wrap gap-2">
+                {usedSlots.map(s => (
+                    <div key={s} className="flex items-center gap-1 border border-gray-200 rounded-lg px-2 py-1 bg-gray-50">
+                        <span className="text-xs font-bold text-gray-500 italic">[{s}] =</span>
+                        <input
+                            type="text"
+                            value={q[s] || ''}
+                            onChange={e => set(s, e.target.value)}
+                            placeholder="answer"
+                            className="w-20 h-6 text-xs border-none bg-transparent focus:outline-none font-mono"
+                        />
+                        <button onClick={() => removeSlot(s)} className="text-gray-300 hover:text-red-400">
+                            <X size={10} />
+                        </button>
+                    </div>
+                ))}
+                {usedSlots.length < ANSWER_SLOTS.length && (
+                    <button
+                        type="button"
+                        onClick={addSlot}
+                        className="text-xs text-[#2760A6] hover:text-[#1a4a80] font-medium border border-dashed border-blue-200 rounded-lg px-2 py-1"
+                    >+ slot</button>
+                )}
+            </div>
+        </div>
+    )
+}
+
 function EditView({ exam, onBack }) {
-    const [questions, setQuestions] = useState(exam.problem || [])
-    const [saving,    setSaving]    = useState(false)
-    const [saved,     setSaved]     = useState(false)
-    const [error,     setError]     = useState('')
+    const [questions,    setQuestions]    = useState(exam.problem || [])
+    const [secondProbs,  setSecondProbs]  = useState(exam.second_problem || [])
+    const [saving,       setSaving]       = useState(false)
+    const [saved,        setSaved]        = useState(false)
+    const [error,        setError]        = useState('')
+    const [section,      setSection]      = useState('mc')  // 'mc' | 'open'
 
     function updateQuestion(idx, updated) {
         setQuestions(prev => prev.map((q, i) => i === idx ? updated : q))
@@ -134,11 +198,16 @@ function EditView({ exam, onBack }) {
         setSaved(false)
     }
 
+    function addSecondProb() {
+        setSecondProbs(prev => [...prev, { id: String(prev.length + 1), text: '', a: '' }])
+        setSaved(false)
+    }
+
     async function handleSave() {
         setSaving(true); setError(''); setSaved(false)
         const { error: dbErr } = await supabase
             .from('exams')
-            .update({ problem: questions })
+            .update({ problem: questions, second_problem: secondProbs })
             .eq('id', exam.id)
         setSaving(false)
         if (dbErr) { setError(dbErr.message); return }
@@ -150,13 +219,13 @@ function EditView({ exam, onBack }) {
     return (
         <div className="px-8 py-8 max-w-3xl">
             {/* header */}
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-4">
                 <div>
                     <h1 className="text-2xl font-extrabold text-gray-900">
                         Edit — {exam.year} {exam.variant}
                     </h1>
                     <div className="flex items-center gap-2 mt-1">
-                        <span className="text-sm text-muted-foreground">{questions.length} questions</span>
+                        <span className="text-sm text-muted-foreground">{questions.length} MC · {secondProbs.length} open-ended</span>
                         {missing > 0 && (
                             <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200 text-xs">
                                 {missing} missing answers
@@ -176,28 +245,71 @@ function EditView({ exam, onBack }) {
                 </div>
             </div>
 
+            {/* Section toggle */}
+            <div className="flex rounded-xl overflow-hidden border border-gray-200 text-xs font-semibold w-fit mb-5">
+                <button
+                    type="button"
+                    onClick={() => setSection('mc')}
+                    className={`px-4 py-2 transition-colors ${section === 'mc' ? 'bg-[#E75234] text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
+                >Section 1 · Multiple Choice ({questions.length})</button>
+                <button
+                    type="button"
+                    onClick={() => setSection('open')}
+                    className={`px-4 py-2 transition-colors ${section === 'open' ? 'bg-[#2760A6] text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
+                >Section 2 · Задгай ({secondProbs.length})</button>
+            </div>
+
             {error && (
                 <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
                     {error}
                 </div>
             )}
 
-            <div className="flex flex-col gap-3">
-                {questions.map((q, i) => (
-                    <QuestionEditor key={q.id} question={q}
-                        onChange={u => updateQuestion(i, u)}
-                        onRemove={() => removeQuestion(i)} />
-                ))}
-            </div>
+            {section === 'mc' && (
+                <>
+                    <div className="flex flex-col gap-3">
+                        {questions.map((q, i) => (
+                            <QuestionEditor key={q.id} question={q}
+                                onChange={u => updateQuestion(i, u)}
+                                onRemove={() => removeQuestion(i)} />
+                        ))}
+                    </div>
+                    <button
+                        type="button"
+                        onClick={addQuestion}
+                        disabled={saving}
+                        className="flex items-center gap-2 text-sm text-[#2760A6] hover:text-[#1a4a80] font-medium mt-4 mb-2 disabled:opacity-50 transition-colors"
+                    >
+                        <PlusCircle size={16} /> Add Question
+                    </button>
+                </>
+            )}
 
-            <button
-                type="button"
-                onClick={addQuestion}
-                disabled={saving}
-                className="flex items-center gap-2 text-sm text-[#2760A6] hover:text-[#1a4a80] font-medium mt-4 mb-2 disabled:opacity-50 transition-colors"
-            >
-                <PlusCircle size={16} /> Add Question
-            </button>
+            {section === 'open' && (
+                <>
+                    {secondProbs.length === 0 && (
+                        <p className="text-sm text-muted-foreground mb-4">No open-ended questions yet.</p>
+                    )}
+                    <div className="flex flex-col gap-3">
+                        {secondProbs.map((q, i) => (
+                            <SecondProblemEditor
+                                key={q.id}
+                                question={q}
+                                onChange={u => { setSecondProbs(prev => prev.map((p, j) => j === i ? u : p)); setSaved(false) }}
+                                onRemove={() => { setSecondProbs(prev => prev.filter((_, j) => j !== i)); setSaved(false) }}
+                            />
+                        ))}
+                    </div>
+                    <button
+                        type="button"
+                        onClick={addSecondProb}
+                        disabled={saving}
+                        className="flex items-center gap-2 text-sm text-[#2760A6] hover:text-[#1a4a80] font-medium mt-4 mb-2 disabled:opacity-50 transition-colors"
+                    >
+                        <PlusCircle size={16} /> Add Open-ended Question
+                    </button>
+                </>
+            )}
 
             {/* sticky save at bottom */}
             <div className="sticky bottom-6 flex justify-end mt-6">
@@ -223,7 +335,7 @@ export default function AdminExams() {
         setLoading(true)
         const { data } = await supabase
             .from('exams')
-            .select('id, year, variant, problem, created_at')
+            .select('id, year, variant, problem, second_problem, created_at')
             .order('year', { ascending: false })
         setExams(data || [])
         setLoading(false)

@@ -56,7 +56,7 @@ function SAT() {
                 <h2 className='text-2xl font-extrabold mb-2'>Математикийн сэдвүүд</h2>
                 <p className='text-gray-400 text-sm mb-8'>44 асуултын хуваарилалт сэдвээр</p>
                 <div className='grid grid-cols-1 sm:grid-cols-2 gap-5'>
-                    {mathTopics.map((t, i) => (
+                    {mathTopics.map((t) => (
                         <div key={t.name} className='bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex flex-col gap-3'>
                             <div className='flex items-center justify-between'>
                                 <h3 className='font-bold text-base'>{t.name}</h3>

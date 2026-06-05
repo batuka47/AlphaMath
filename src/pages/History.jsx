@@ -4,14 +4,7 @@ import Header from '../components/Header'
 import Footer from '../components/Footer'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
-
-function getGrade(pct) {
-    if (pct >= 90) return { label: 'Онцлог',    color: 'text-purple-600',  bg: 'bg-purple-50'  }
-    if (pct >= 75) return { label: 'Сайн',       color: 'text-green-600',   bg: 'bg-green-50'   }
-    if (pct >= 55) return { label: 'Дунд',       color: 'text-yellow-600',  bg: 'bg-yellow-50'  }
-    if (pct >= 40) return { label: 'Хангалттай', color: 'text-orange-500',  bg: 'bg-orange-50'  }
-    return              { label: 'Хангалтгүй',  color: 'text-red-500',     bg: 'bg-red-50'     }
-}
+import { getGrade } from '../lib/scoring'
 
 function StatCard({ label, value, sub, color }) {
     return (
