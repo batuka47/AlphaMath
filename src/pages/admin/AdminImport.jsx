@@ -207,24 +207,25 @@ function latexToPlainText(src) {
 
     for (const raw of lines) {
         const line = raw.trim()
+        if (!line) continue
 
-        // \section*{1.} → "1."
-        const sec = line.match(/^\\section\*\{(\d+)[.)]\s*\}/)
+        // \section*{1.} / \section{1} / \subsection*{1.} → "1."
+        const sec = line.match(/^\\(?:sub)?section\*?\{(\d+)[.)?\s]*\}/)
         if (sec) { out.push(`${sec[1]}.`); optionIndex = 0; continue }
 
-        // \item → "A) …"
+        // \item [optional label] text → "A) text"
         if (line.startsWith('\\item')) {
-            const text   = line.replace(/^\\item\s*/, '')
+            const text   = line.replace(/^\\item(?:\[.*?\])?\s*/, '')
             const letter = OPTION_LETTERS[optionIndex] || '?'
-            out.push(`${letter}) ${text}`)
+            if (text) out.push(`${letter}) ${text}`)
             optionIndex++
             continue
         }
 
-        // skip LaTeX structural commands
-        if (line.match(/^\\(begin|end)\{/) || line === '') continue
+        // skip structural LaTeX commands
+        if (line.match(/^\\(begin|end|documentclass|usepackage|title|author|date|maketitle)\b/)) continue
 
-        // everything else is question text or answer key lines — pass through
+        // pass through question text, answer keys, and plain-numbered lines
         out.push(line)
     }
 
@@ -234,7 +235,7 @@ function latexToPlainText(src) {
 // ── Manual question helpers ───────────────────────────────────────────────────
 
 function emptyQuestion(num) {
-    return { id: String(num), text: '', labelA: '', labelB: '', labelC: '', labelD: '', labelE: '', answer: '' }
+    return { id: String(num), type: 'mc', text: '', labelA: '', labelB: '', labelC: '', labelD: '', labelE: '', answer: '' }
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
@@ -351,8 +352,16 @@ export default function AdminImport() {
         setError('')
         try {
             const plain     = latexToPlainText(latex)
-            const questions = parseQuestions(plain)
-            if (questions.length === 0) throw new Error('No questions found. Edit the content and try again.')
+            let   questions = parseQuestions(plain)
+
+            // fallback: try raw latex in case it already uses plain "1. text" numbering
+            if (questions.length === 0) questions = parseQuestions(latex)
+
+            if (questions.length === 0) throw new Error(
+                'No questions found. Make sure each question starts with a number: ' +
+                '"1." on its own line, or "1. question text". ' +
+                'Options should use "A) …" / "А) …" or \\item.'
+            )
 
             const answerKey = parseAnswerKey(plain)
             questions.forEach(q => { q.answer = answerKey[q.id] || '' })
@@ -580,8 +589,26 @@ export default function AdminImport() {
                     <div className="space-y-4 mb-6">
                         {manualQuestions.map((q, idx) => (
                             <div key={idx} className="border border-gray-200 rounded-xl p-4 bg-white shadow-sm">
+                                {/* question header */}
                                 <div className="flex items-center justify-between mb-3">
-                                    <span className="text-sm font-bold text-[#2760A6]">Q{idx + 1}</span>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm font-bold text-[#2760A6]">Q{idx + 1}</span>
+                                        {/* type toggle */}
+                                        <div className="flex rounded-lg overflow-hidden border border-gray-200 text-xs font-semibold">
+                                            <button
+                                                type="button"
+                                                onClick={() => updateQuestion(idx, 'type', 'mc')}
+                                                disabled={manualSaving}
+                                                className={`px-2.5 py-1 transition-colors ${q.type !== 'text' ? 'bg-[#E75234] text-white' : 'bg-white text-gray-400 hover:bg-gray-50'}`}
+                                            >A–E</button>
+                                            <button
+                                                type="button"
+                                                onClick={() => updateQuestion(idx, 'type', 'text')}
+                                                disabled={manualSaving}
+                                                className={`px-2.5 py-1 transition-colors ${q.type === 'text' ? 'bg-[#E75234] text-white' : 'bg-white text-gray-400 hover:bg-gray-50'}`}
+                                            >Text</button>
+                                        </div>
+                                    </div>
                                     {manualQuestions.length > 1 && (
                                         <button onClick={() => removeQuestion(idx)} disabled={manualSaving}
                                             className="text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50">
@@ -590,6 +617,7 @@ export default function AdminImport() {
                                     )}
                                 </div>
 
+                                {/* question text */}
                                 <div className="mb-3">
                                     <LaTeXField
                                         value={q.text}
@@ -600,32 +628,50 @@ export default function AdminImport() {
                                     />
                                 </div>
 
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
-                                    {['A', 'B', 'C', 'D', 'E'].map(letter => (
-                                        <div key={letter} className="flex items-center gap-2">
-                                            <span className="text-xs font-bold text-gray-400 w-4">{letter}</span>
-                                            <LaTeXInput
-                                                value={q[`label${letter}`]}
-                                                onChange={val => updateQuestion(idx, `label${letter}`, val)}
-                                                placeholder={`Option ${letter}`}
-                                                disabled={manualSaving}
-                                            />
+                                {/* multiple choice options */}
+                                {q.type !== 'text' && (
+                                    <>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
+                                            {['A', 'B', 'C', 'D', 'E'].map(letter => (
+                                                <div key={letter} className="flex items-center gap-2">
+                                                    <span className="text-xs font-bold text-gray-400 w-4">{letter}</span>
+                                                    <LaTeXInput
+                                                        value={q[`label${letter}`]}
+                                                        onChange={val => updateQuestion(idx, `label${letter}`, val)}
+                                                        placeholder={`Option ${letter}`}
+                                                        disabled={manualSaving}
+                                                    />
+                                                </div>
+                                            ))}
                                         </div>
-                                    ))}
-                                </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs font-medium text-gray-600">Answer:</span>
+                                            <select
+                                                value={q.answer}
+                                                onChange={e => updateQuestion(idx, 'answer', e.target.value)}
+                                                disabled={manualSaving}
+                                                className="text-sm border border-gray-200 rounded-md px-2 py-1 focus:outline-none focus:ring-1 focus:ring-[#E75234] disabled:opacity-50"
+                                            >
+                                                <option value="">— select —</option>
+                                                {['A', 'B', 'C', 'D', 'E'].map(l => <option key={l} value={l}>{l}</option>)}
+                                            </select>
+                                        </div>
+                                    </>
+                                )}
 
-                                <div className="flex items-center gap-2">
-                                    <span className="text-xs font-medium text-gray-600">Answer:</span>
-                                    <select
-                                        value={q.answer}
-                                        onChange={e => updateQuestion(idx, 'answer', e.target.value)}
-                                        disabled={manualSaving}
-                                        className="text-sm border border-gray-200 rounded-md px-2 py-1 focus:outline-none focus:ring-1 focus:ring-[#E75234] disabled:opacity-50"
-                                    >
-                                        <option value="">— select —</option>
-                                        {['A', 'B', 'C', 'D', 'E'].map(l => <option key={l} value={l}>{l}</option>)}
-                                    </select>
-                                </div>
+                                {/* text answer */}
+                                {q.type === 'text' && (
+                                    <div className="flex items-start gap-2">
+                                        <span className="text-xs font-medium text-gray-600 mt-2">Answer:</span>
+                                        <LaTeXField
+                                            value={q.answer}
+                                            onChange={val => updateQuestion(idx, 'answer', val)}
+                                            placeholder="Enter the answer — use $LaTeX$ for math"
+                                            rows={2}
+                                            disabled={manualSaving}
+                                        />
+                                    </div>
+                                )}
                             </div>
                         ))}
                     </div>

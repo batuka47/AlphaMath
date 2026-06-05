@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Trash2, RefreshCw, Pencil, Save, X } from 'lucide-react'
+import { Trash2, RefreshCw, Pencil, Save, X, PlusCircle } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -11,7 +11,7 @@ const ANSWER_OPTIONS = ['', 'A', 'B', 'C', 'D', 'E']
 
 // ── Question editor ───────────────────────────────────────────────────────────
 
-function QuestionEditor({ question, onChange }) {
+function QuestionEditor({ question, onChange, onRemove }) {
     const q = question
     const set = (field, val) => onChange({ ...q, [field]: val })
 
@@ -30,6 +30,12 @@ function QuestionEditor({ question, onChange }) {
                         <option key={o} value={o}>{o || '— no answer —'}</option>
                     ))}
                 </select>
+                {onRemove && (
+                    <button onClick={onRemove} title="Delete question"
+                        className="text-gray-300 hover:text-red-400 transition-colors ml-1">
+                        <Trash2 size={14} />
+                    </button>
+                )}
             </div>
 
             <textarea
@@ -70,6 +76,22 @@ function EditView({ exam, onBack }) {
 
     function updateQuestion(idx, updated) {
         setQuestions(prev => prev.map((q, i) => i === idx ? updated : q))
+        setSaved(false)
+    }
+
+    function addQuestion() {
+        setQuestions(prev => {
+            const nextId = String(prev.length + 1)
+            return [...prev, { id: nextId, text: '', labelA: '', labelB: '', labelC: '', labelD: '', labelE: '', answer: '' }]
+        })
+        setSaved(false)
+    }
+
+    function removeQuestion(idx) {
+        setQuestions(prev => {
+            const next = prev.filter((_, i) => i !== idx)
+            return next.map((q, i) => ({ ...q, id: String(i + 1) }))
+        })
         setSaved(false)
     }
 
@@ -123,9 +145,20 @@ function EditView({ exam, onBack }) {
 
             <div className="flex flex-col gap-3">
                 {questions.map((q, i) => (
-                    <QuestionEditor key={q.id} question={q} onChange={u => updateQuestion(i, u)} />
+                    <QuestionEditor key={q.id} question={q}
+                        onChange={u => updateQuestion(i, u)}
+                        onRemove={() => removeQuestion(i)} />
                 ))}
             </div>
+
+            <button
+                type="button"
+                onClick={addQuestion}
+                disabled={saving}
+                className="flex items-center gap-2 text-sm text-[#2760A6] hover:text-[#1a4a80] font-medium mt-4 mb-2 disabled:opacity-50 transition-colors"
+            >
+                <PlusCircle size={16} /> Add Question
+            </button>
 
             {/* sticky save at bottom */}
             <div className="sticky bottom-6 flex justify-end mt-6">
