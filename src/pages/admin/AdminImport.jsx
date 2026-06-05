@@ -4,7 +4,7 @@ import * as pdfjsLib from 'pdfjs-dist'
 import katex from 'katex'
 import 'katex/dist/katex.min.css'
 import {
-    Upload, FileText, CheckCircle, Loader2, AlertCircle, PlusCircle, Trash2, PenLine,
+    Upload, FileText, CheckCircle, Loader2, AlertCircle, PlusCircle, Trash2, PenLine, Code,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -219,6 +219,9 @@ export default function AdminImport() {
     const [tab,       setTab]       = useState('edit')
     const [error,     setError]     = useState('')
 
+    // latex paste flow
+    const [pastedLatex, setPastedLatex] = useState('')
+
     // manual flow
     const [manualQuestions, setManualQuestions] = useState([emptyQuestion(1)])
     const [manualSaving,    setManualSaving]    = useState(false)
@@ -272,6 +275,7 @@ export default function AdminImport() {
         setFile(null); setYear(String(CURRENT_YEAR)); setVariant('A')
         setStage('idle'); setStatusMsg(''); setLatex(''); setTab('edit')
         setError(''); setSavedStats(null)
+        setPastedLatex('')
         setManualQuestions([emptyQuestion(1)]); setManualError('')
     }
 
@@ -440,6 +444,10 @@ export default function AdminImport() {
                     className={`flex items-center gap-2 px-5 py-2 transition-colors ${mode === 'pdf' ? 'bg-[#E75234] text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}>
                     <Upload size={14} /> PDF Import
                 </button>
+                <button onClick={() => setMode('latex')} disabled={isProcessing}
+                    className={`flex items-center gap-2 px-5 py-2 transition-colors ${mode === 'latex' ? 'bg-[#E75234] text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}>
+                    <Code size={14} /> Paste LaTeX
+                </button>
                 <button onClick={() => setMode('manual')} disabled={isProcessing}
                     className={`flex items-center gap-2 px-5 py-2 transition-colors ${mode === 'manual' ? 'bg-[#E75234] text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}>
                     <PenLine size={14} /> Manual Entry
@@ -494,6 +502,29 @@ export default function AdminImport() {
                         {isProcessing
                             ? <><Loader2 size={18} className="animate-spin mr-2" />{statusMsg}</>
                             : 'Process PDF'}
+                    </Button>
+                </>
+            )}
+
+            {/* ── Paste LaTeX mode ── */}
+            {mode === 'latex' && (
+                <>
+                    <p className="text-xs text-muted-foreground mb-3">
+                        Paste LaTeX with <code className="bg-gray-100 px-1 rounded">\section*{'{N.}'}</code> headings and <code className="bg-gray-100 px-1 rounded">\begin{'{enumerate}'}</code> options. Include an answer key section if available.
+                    </p>
+                    <textarea
+                        className="w-full h-72 font-mono text-xs bg-gray-950 text-green-300 rounded-2xl p-5 resize-none focus:outline-none focus:ring-2 focus:ring-[#E75234] mb-4"
+                        value={pastedLatex}
+                        onChange={e => setPastedLatex(e.target.value)}
+                        placeholder={"\\section*{1.}\nQuestion text here...\n\\begin{enumerate}\n\\item Option A\n\\item Option B\n..."}
+                        spellCheck={false}
+                    />
+                    <Button
+                        onClick={() => { setLatex(pastedLatex); setStage('reviewing') }}
+                        disabled={!pastedLatex.trim()}
+                        className="w-full h-12 text-base font-bold bg-[#E75234] hover:bg-[#c94220] text-white disabled:opacity-50"
+                    >
+                        Review &amp; Save
                     </Button>
                 </>
             )}
