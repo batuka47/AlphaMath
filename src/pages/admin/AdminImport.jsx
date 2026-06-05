@@ -68,26 +68,28 @@ async function extractPdfText(file) {
 // ── LaTeX preview renderer ────────────────────────────────────────────────────
 
 function renderLatexToHtml(src) {
-    let html = src
-        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-
-    html = html.replace(/\$\$([\s\S]+?)\$\$/g, (_, m) => {
-        try { return katex.renderToString(m.trim(), { displayMode: true, throwOnError: false }) }
-        catch { return `<span class="text-red-400">$$${m}$$</span>` }
-    })
-    html = html.replace(/\$([^\n$]+?)\$/g, (_, m) => {
-        try { return katex.renderToString(m.trim(), { displayMode: false, throwOnError: false }) }
-        catch { return `<span class="text-red-400">$${m}$</span>` }
-    })
-    html = html.replace(/\\section\*\{([^}]*)\}/g, '<h3 class="text-base font-bold mt-4 mb-1 text-[#2760A6]">$1</h3>')
-    html = html.replace(/\\begin\{enumerate\}/g, '<ol class="list-decimal list-inside space-y-1 pl-2">')
-    html = html.replace(/\\end\{enumerate\}/g,   '</ol>')
-    html = html.replace(/\\begin\{itemize\}/g,   '<ul class="list-disc list-inside space-y-1 pl-2">')
-    html = html.replace(/\\end\{itemize\}/g,     '</ul>')
-    html = html.replace(/\\item\s*/g,            '<li class="text-sm">')
-    html = html.replace(/\n{2,}/g, '<br/><br/>')
-    html = html.replace(/\n/g, '<br/>')
-    return html
+    // Split on math blocks first so \n replacement never touches SVG path data
+    const segments = src.split(/(\$\$[\s\S]+?\$\$|\$[^\n$]+?\$)/g)
+    return segments.map(seg => {
+        if (seg.startsWith('$$') && seg.endsWith('$$')) {
+            try { return katex.renderToString(seg.slice(2, -2).trim(), { displayMode: true,  throwOnError: false }) }
+            catch { return `<span class="text-red-400">${seg}</span>` }
+        }
+        if (seg.startsWith('$') && seg.endsWith('$')) {
+            try { return katex.renderToString(seg.slice(1, -1).trim(), { displayMode: false, throwOnError: false }) }
+            catch { return `<span class="text-red-400">${seg}</span>` }
+        }
+        return seg
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/\\section\*\{([^}]*)\}/g, '<h3 class="text-base font-bold mt-4 mb-1 text-[#2760A6]">$1</h3>')
+            .replace(/\\begin\{enumerate\}/g, '<ol class="list-decimal list-inside space-y-1 pl-2">')
+            .replace(/\\end\{enumerate\}/g,   '</ol>')
+            .replace(/\\begin\{itemize\}/g,   '<ul class="list-disc list-inside space-y-1 pl-2">')
+            .replace(/\\end\{itemize\}/g,     '</ul>')
+            .replace(/\\item\s*/g,            '<li class="text-sm">')
+            .replace(/\n{2,}/g, '<br/><br/>')
+            .replace(/\n/g, '<br/>')
+    }).join('')
 }
 
 // ── Drop zone ─────────────────────────────────────────────────────────────────
@@ -192,6 +194,41 @@ function LaTeXInput({ value, onChange, placeholder, disabled }) {
             )}
         </div>
     )
+}
+
+// ── LaTeX → plain-text converter for parseQuestions ──────────────────────────
+
+const OPTION_LETTERS = ['A', 'B', 'C', 'D', 'E']
+
+function latexToPlainText(src) {
+    const lines = src.split('\n')
+    const out   = []
+    let optionIndex = 0
+
+    for (const raw of lines) {
+        const line = raw.trim()
+
+        // \section*{1.} → "1."
+        const sec = line.match(/^\\section\*\{(\d+)[.)]\s*\}/)
+        if (sec) { out.push(`${sec[1]}.`); optionIndex = 0; continue }
+
+        // \item → "A) …"
+        if (line.startsWith('\\item')) {
+            const text   = line.replace(/^\\item\s*/, '')
+            const letter = OPTION_LETTERS[optionIndex] || '?'
+            out.push(`${letter}) ${text}`)
+            optionIndex++
+            continue
+        }
+
+        // skip LaTeX structural commands
+        if (line.match(/^\\(begin|end)\{/) || line === '') continue
+
+        // everything else is question text or answer key lines — pass through
+        out.push(line)
+    }
+
+    return out.join('\n')
 }
 
 // ── Manual question helpers ───────────────────────────────────────────────────
@@ -313,10 +350,11 @@ export default function AdminImport() {
         setStage('saving')
         setError('')
         try {
-            const questions = parseQuestions(latex)
+            const plain     = latexToPlainText(latex)
+            const questions = parseQuestions(plain)
             if (questions.length === 0) throw new Error('No questions found. Edit the content and try again.')
 
-            const answerKey = parseAnswerKey(latex)
+            const answerKey = parseAnswerKey(plain)
             questions.forEach(q => { q.answer = answerKey[q.id] || '' })
 
             const { error: dbErr } = await supabase
