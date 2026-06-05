@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { useTaskRefresh } from '@/lib/TaskContext'
 import * as pdfjsLib from 'pdfjs-dist'
 import katex from 'katex'
@@ -92,18 +92,17 @@ function cleanText(raw) {
         .trim()
 }
 
-// Parse % figure: page N → { [qId]: { pageIdx, y1, y2 } }
-// Default crop: top 60% of the page (figures usually sit above answer choices)
+// Parse % figure: page N → { [qId]: { pageIdx, y1, y2, x1, x2 } }
 function parseFigureAnnotations(latex) {
     const assignments = {}
     const re = /\\section\*\{(\d+)[^}]*\}[^\n]*\n[^\n]*%\s*figure:\s*page\s*(\d+)/gi
     for (const m of latex.matchAll(re)) {
-        assignments[m[1]] = { pageIdx: parseInt(m[2]) - 1, y1: 0.0, y2: 0.6 }
+        assignments[m[1]] = { pageIdx: parseInt(m[2]) - 1, y1: 0.0, y2: 0.6, x1: 0.0, x2: 1.0 }
     }
     return assignments
 }
 
-// Parse задгай даалгавар (section 2) from LaTeX
+// Parse задгай даалгавар (section 2) — handles ids like "1", "2.1", "2.2" etc.
 function parseSecondSection(latex) {
     const { section2 } = splitLatexSections(latex)
     if (!section2.trim()) return []
@@ -112,7 +111,8 @@ function parseSecondSection(latex) {
     for (const raw of section2.split('\n')) {
         const line = raw.trim()
         if (!line || line.match(/^\\(begin|end)\b/) || line.startsWith('%')) continue
-        const sec = line.match(/^\\section\*?\{(\d+)[.)?\s]*\}/)
+        // Match ids like 1, 2.1, 2.2, 2.3 etc.
+        const sec = line.match(/^\\section\*?\{([\d.]+)[.)?\s]*\}/)
         if (sec) {
             if (current) problems.push(finaliseSecondProblem(current))
             current = { id: sec[1], parts: [] }
@@ -132,22 +132,24 @@ function finaliseSecondProblem(q) {
     return obj
 }
 
-// Crop a page image to the vertical range [y1, y2] (0–1 fractions), full width
-async function cropImage(dataUrl, y1, y2, pageDim) {
+// Crop a page image by [y1,y2] vertically and [x1,x2] horizontally (all 0–1 fractions)
+async function cropImage(dataUrl, y1, y2, x1, x2) {
     return new Promise(resolve => {
         const img = new Image()
         img.onload = () => {
             const W = img.naturalWidth
             const H = img.naturalHeight
+            const srcX = Math.round(W * x1)
             const srcY = Math.round(H * y1)
+            const srcW = Math.max(1, Math.round(W * (x2 - x1)))
             const srcH = Math.max(1, Math.round(H * (y2 - y1)))
             const canvas = document.createElement('canvas')
-            canvas.width  = W
+            canvas.width  = srcW
             canvas.height = srcH
-            canvas.getContext('2d').drawImage(img, 0, srcY, W, srcH, 0, 0, W, srcH)
+            canvas.getContext('2d').drawImage(img, srcX, srcY, srcW, srcH, 0, 0, srcW, srcH)
             resolve(canvas.toDataURL('image/png'))
         }
-        img.onerror = () => resolve(dataUrl)  // fallback to full page
+        img.onerror = () => resolve(dataUrl)
         img.src = dataUrl
     })
 }
@@ -380,7 +382,8 @@ export default function AdminImport() {
     const [error,            setError]            = useState('')
     const [pageDataUrls,      setPageDataUrls]      = useState([])  // rendered PDF pages
     const [pageDims,          setPageDims]          = useState([])  // [{w,h}] per page
-    const [figureAssignments, setFigureAssignments] = useState({})  // { qId: {pageIdx,y1,y2} }
+    const [figureAssignments, setFigureAssignments] = useState({})  // { qId: {pageIdx,y1,y2,x1,x2} }
+    const [lightbox,          setLightbox]          = useState(null) // { qId } | null
 
     // latex paste flow
     const [pastedLatex, setPastedLatex] = useState('')
@@ -389,6 +392,13 @@ export default function AdminImport() {
     const [manualQuestions, setManualQuestions] = useState([emptyQuestion(1)])
     const [manualSaving,    setManualSaving]    = useState(false)
     const [manualError,     setManualError]     = useState('')
+
+    useEffect(() => {
+        if (!lightbox) return
+        const handler = e => { if (e.key === 'Escape') setLightbox(null) }
+        window.addEventListener('keydown', handler)
+        return () => window.removeEventListener('keydown', handler)
+    }, [lightbox])
 
     function addQuestion() {
         setManualQuestions(prev => [...prev, emptyQuestion(prev.length + 1)])
@@ -497,10 +507,10 @@ export default function AdminImport() {
             // Crop + upload figure images and assign img field to questions
             if (Object.keys(figureAssignments).length > 0 && pageDataUrls.length > 0) {
                 setStatusMsg('Uploading question images…')
-                for (const [qId, { pageIdx, y1, y2 }] of Object.entries(figureAssignments)) {
+                for (const [qId, { pageIdx, y1, y2, x1 = 0, x2 = 1 }] of Object.entries(figureAssignments)) {
                     if (pageIdx < 0 || pageIdx >= pageDataUrls.length) continue
                     try {
-                        const cropped = await cropImage(pageDataUrls[pageIdx], y1, y2, pageDims[pageIdx])
+                        const cropped = await cropImage(pageDataUrls[pageIdx], y1, y2, x1, x2)
                         const url = await uploadPageImage(cropped, `${year}-${variant}/q${qId}.png`)
                         const q = questions.find(q => q.id === qId)
                         if (q) q.img = url
@@ -610,49 +620,65 @@ export default function AdminImport() {
                         </p>
                         <div className="flex flex-col gap-3">
                             {Object.entries(figureAssignments)
-                                .sort((a, b) => parseInt(a[0]) - parseInt(b[0]))
-                                .map(([qId, { pageIdx, y1, y2 }]) => {
+                                .sort((a, b) => parseFloat(a[0]) - parseFloat(b[0]))
+                                .map(([qId, { pageIdx, y1, y2, x1 = 0, x2 = 1 }]) => {
                                     const dim = pageDims[pageIdx] || { w: 892, h: 1263 }
-                                    const aspect = dim.w / dim.h  // ~0.706 for A4
-                                    const previewW = 160
-                                    const previewH = Math.round(previewW / aspect * (y2 - y1))
-                                    const imgH     = Math.round(previewW / aspect)
-                                    const setFA = (patch) => setFigureAssignments(prev => ({
+                                    const aspect = dim.w / dim.h          // ~0.706 for A4
+                                    const previewW  = 160
+                                    // Scale so the cropped region fills previewW
+                                    const imgDispW  = previewW / (x2 - x1)
+                                    const imgDispH  = imgDispW / aspect
+                                    const cropDispH = Math.round(imgDispH * (y2 - y1))
+                                    const setFA = patch => setFigureAssignments(prev => ({
                                         ...prev, [qId]: { ...prev[qId], ...patch }
                                     }))
                                     return (
                                         <div key={qId} className="flex items-start gap-4 bg-white rounded-xl border border-blue-100 p-3 shadow-sm">
-                                            {/* Crop preview */}
+                                            {/* Live crop preview */}
                                             <div className="shrink-0 flex flex-col items-center gap-1">
                                                 <span className="text-xs font-bold text-[#E75234]">Q{qId}</span>
-                                                <div style={{ width: previewW, height: previewH, overflow: 'hidden', borderRadius: 6, border: '1px solid #e5e7eb', position: 'relative' }}>
+                                                <div
+                                                    onClick={() => setLightbox({ qId })}
+                                                    title="Click to enlarge"
+                                                    style={{
+                                                        width: previewW, height: Math.max(20, cropDispH),
+                                                        overflow: 'hidden', borderRadius: 6,
+                                                        border: '1px solid #e5e7eb', position: 'relative',
+                                                        cursor: 'zoom-in',
+                                                    }}
+                                                >
                                                     <img
                                                         src={pageDataUrls[pageIdx]}
                                                         alt=""
-                                                        style={{ position: 'absolute', width: previewW, height: imgH, top: -Math.round(imgH * y1), objectFit: 'fill' }}
+                                                        style={{
+                                                            position: 'absolute',
+                                                            width:  Math.round(imgDispW),
+                                                            height: Math.round(imgDispH),
+                                                            left:  -Math.round(imgDispW * x1),
+                                                            top:   -Math.round(imgDispH * y1),
+                                                        }}
                                                     />
                                                 </div>
+                                                <span className="text-[10px] text-gray-400">click to enlarge</span>
                                             </div>
-                                            {/* Controls */}
+                                            {/* Crop controls */}
                                             <div className="flex-1 flex flex-col gap-2 min-w-0">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-xs text-gray-500 w-12 shrink-0">Top {Math.round(y1*100)}%</span>
-                                                    <input type="range" min="0" max="95" step="1"
-                                                        value={Math.round(y1*100)}
-                                                        disabled={isSaving}
-                                                        onChange={e => { const v = parseInt(e.target.value)/100; setFA({ y1: v, y2: Math.max(v+0.05, y2) }) }}
-                                                        className="flex-1 accent-[#2760A6]"
-                                                    />
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-xs text-gray-500 w-12 shrink-0">Bot {Math.round(y2*100)}%</span>
-                                                    <input type="range" min="5" max="100" step="1"
-                                                        value={Math.round(y2*100)}
-                                                        disabled={isSaving}
-                                                        onChange={e => { const v = parseInt(e.target.value)/100; setFA({ y2: v, y1: Math.min(y1, v-0.05) }) }}
-                                                        className="flex-1 accent-[#2760A6]"
-                                                    />
-                                                </div>
+                                                {[
+                                                    { label: 'Top',   pct: Math.round(y1*100), min: 0,  max: 95, onChange: v => setFA({ y1: v, y2: Math.max(v+0.05, y2) }) },
+                                                    { label: 'Bot',   pct: Math.round(y2*100), min: 5,  max: 100, onChange: v => setFA({ y2: v, y1: Math.min(y1, v-0.05) }) },
+                                                    { label: 'Left',  pct: Math.round(x1*100), min: 0,  max: 95, onChange: v => setFA({ x1: v, x2: Math.max(v+0.05, x2) }) },
+                                                    { label: 'Right', pct: Math.round(x2*100), min: 5,  max: 100, onChange: v => setFA({ x2: v, x1: Math.min(x1, v-0.05) }) },
+                                                ].map(({ label, pct, min, max, onChange }) => (
+                                                    <div key={label} className="flex items-center gap-2">
+                                                        <span className="text-xs text-gray-500 w-14 shrink-0">{label} {pct}%</span>
+                                                        <input type="range" min={min} max={max} step="1"
+                                                            value={pct}
+                                                            disabled={isSaving}
+                                                            onChange={e => onChange(parseInt(e.target.value) / 100)}
+                                                            className="flex-1 accent-[#2760A6]"
+                                                        />
+                                                    </div>
+                                                ))}
                                                 <select
                                                     value={pageIdx}
                                                     onChange={e => setFA({ pageIdx: parseInt(e.target.value) })}
@@ -675,6 +701,57 @@ export default function AdminImport() {
                         </div>
                     </div>
                 )}
+
+                {/* ── Lightbox ── */}
+                {lightbox && (() => {
+                    const { qId } = lightbox
+                    const fa = figureAssignments[qId]
+                    if (!fa) return null
+                    const { pageIdx, y1, y2, x1 = 0, x2 = 1 } = fa
+                    const dim = pageDims[pageIdx] || { w: 892, h: 1263 }
+                    const aspect = dim.w / dim.h
+                    const lbW = 480
+                    const imgW = lbW / (x2 - x1)
+                    const imgH = imgW / aspect
+                    const cropH = Math.round(imgH * (y2 - y1))
+                    return (
+                        <div
+                            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
+                            onClick={() => setLightbox(null)}
+                        >
+                            <div
+                                className="relative bg-white rounded-2xl shadow-2xl p-4 flex flex-col items-center gap-3"
+                                onClick={e => e.stopPropagation()}
+                            >
+                                <div className="flex items-center justify-between w-full">
+                                    <span className="text-sm font-bold text-[#E75234]">Q{qId} — Figure</span>
+                                    <button
+                                        onClick={() => setLightbox(null)}
+                                        className="text-gray-400 hover:text-gray-700 transition-colors text-lg leading-none"
+                                    >✕</button>
+                                </div>
+                                <div style={{
+                                    width: lbW, height: Math.max(40, cropH),
+                                    overflow: 'hidden', borderRadius: 8,
+                                    border: '1px solid #e5e7eb', position: 'relative',
+                                }}>
+                                    <img
+                                        src={pageDataUrls[pageIdx]}
+                                        alt=""
+                                        style={{
+                                            position: 'absolute',
+                                            width:  Math.round(imgW),
+                                            height: Math.round(imgH),
+                                            left:  -Math.round(imgW * x1),
+                                            top:   -Math.round(imgH * y1),
+                                        }}
+                                    />
+                                </div>
+                                <p className="text-xs text-gray-400">Click outside or press Esc to close</p>
+                            </div>
+                        </div>
+                    )
+                })()}
 
                 {tab === 'edit' && (
                     <textarea

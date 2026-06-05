@@ -1,6 +1,9 @@
 import Anthropic from '@anthropic-ai/sdk'
 
-const client = new Anthropic()
+// Support both ANTHROPIC_API_KEY and CLAUDE_API_KEY env var names
+const getClient = () => new Anthropic({
+    apiKey: process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_API_KEY,
+})
 
 // Marked for caching — charged at 10% after the first call
 const SYSTEM_PROMPT = `You are a LaTeX converter for Mongolian math exam PDFs (ЭЕШ). I will give you extracted PDF text. Convert it to clean LaTeX body content only (no \\documentclass or \\begin{document}).
@@ -41,7 +44,7 @@ SECTION 1 FORMAT (questions 1–36):
 5. If a choice is an image/diagram: \\item % image
 
 SECTION 2 FORMAT (after the %%% ЗАДГАЙ ДААЛГАВАР %%% marker):
-- Number problems starting from 1: \\section*{1.}, \\section*{2.}, etc.
+- PRESERVE the original numbering exactly — if the PDF uses 2.1, 2.2, 2.3, 2.4 then output \\section*{2.1}, \\section*{2.2}, \\section*{2.3}, \\section*{2.4}
 - Convert ALL math to LaTeX: $\\frac{a}{b}$, $\\sqrt{x}$, etc.
 - Keep Mongolian text exactly as-is
 - For fill-in-blank slots in the original (blanks, boxes, underscores): write them as [a], [b], [c] etc. in order
@@ -91,14 +94,16 @@ $x^{2} - 5x + 6 = 0$ тэгшитгэлийн шийдүүд $x_1 = $ [a] ба $
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).end()
 
-    if (!process.env.ANTHROPIC_API_KEY)
-        return res.status(503).json({ error: 'ANTHROPIC_API_KEY not set.' })
+    const apiKey = process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_API_KEY
+    if (!apiKey)
+        return res.status(503).json({ error: 'ANTHROPIC_API_KEY (or CLAUDE_API_KEY) not set.' })
 
     const { text } = req.body || {}
     if (!text || !text.trim())
         return res.status(400).json({ error: 'Missing text.' })
 
     try {
+        const client = getClient()
         const stream = client.messages.stream({
             model:      'claude-opus-4-8',
             max_tokens: 10000,
