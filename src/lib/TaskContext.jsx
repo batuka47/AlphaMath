@@ -11,7 +11,9 @@ function applyDynamic(staticTasks, dynamic) {
     dynamic.forEach(t =>
         map.set(`${2006 + parseInt(t.id)}-${t.variant}`, t)
     )
-    return [...map.values()].filter(t => t.problem?.length >= 5)
+    // Static tasks are already pre-filtered (>= 5) by getStaticTasks().
+    // Allow dynamic (Supabase) exams through as long as they have at least 1 question.
+    return [...map.values()].filter(t => t.problem?.length >= 1)
 }
 
 export function TaskProvider({ children }) {

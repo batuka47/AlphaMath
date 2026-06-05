@@ -14,8 +14,12 @@ function EYSH() {
         availableMap[year].add(t.variant)
     })
 
-    const years = []
-    for (let i = 2006; i <= 2024; i++) years.push(i)
+    // Always show 2006-2024; also include any years from dynamic (Supabase) exams beyond 2024
+    const extraYears = Object.keys(availableMap).map(Number).filter(y => y > 2024)
+    const years = [
+        ...Array.from({ length: 2024 - 2006 + 1 }, (_, i) => 2006 + i),
+        ...extraYears,
+    ].sort((a, b) => a - b)
 
     const totalTests = taskData.length
 
