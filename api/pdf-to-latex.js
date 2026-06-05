@@ -2,7 +2,15 @@ import Anthropic from '@anthropic-ai/sdk'
 
 const client = new Anthropic()
 
+// Marked for caching — charged at 10% after the first call
 const SYSTEM_PROMPT = `You are a LaTeX converter for Mongolian math exam PDFs (ЭЕШ). I will give you extracted PDF text. Convert it to clean LaTeX body content only (no \\documentclass or \\begin{document}).
+
+The input has page markers (=== PAGE N ===). Use them to identify which page a figure appears on.
+
+CRITICAL RULES (repeat every response):
+1. Section 1 questions 1–36: EXACTLY 5 \\item lines each — never more, never less.
+2. Questions with diagrams: output % figure: page N immediately after \\section*{Q.}
+3. When Section 2 starts: output %%% ЗАДГАЙ ДААЛГАВАР %%% and NEVER use \\item after it.
 
 ЭЕШ EXAM STRUCTURE — critical to get right:
 - Section 1: Questions 1–36, each with EXACTLY 5 multiple-choice options (А/Б/В/Г/Д or A/B/C/D/E)
@@ -33,8 +41,12 @@ SECTION 1 FORMAT (questions 1–36):
 5. If a choice is an image/diagram: \\item % image
 
 SECTION 2 FORMAT (after the %%% ЗАДГАЙ ДААЛГАВАР %%% marker):
-Use \\section*{N.} for each open-ended problem number, then output the problem text as-is.
-Do NOT use \\begin{enumerate} or \\item for section 2.
+- Number problems starting from 1: \\section*{1.}, \\section*{2.}, etc.
+- Convert ALL math to LaTeX: $\\frac{a}{b}$, $\\sqrt{x}$, etc.
+- Keep Mongolian text exactly as-is
+- For fill-in-blank slots in the original (blanks, boxes, underscores): write them as [a], [b], [c] etc. in order
+- If a problem has multiple sub-answers (e.g. find x and y), mark each blank [a], [b] in order
+- Do NOT use \\begin{enumerate} or \\item — just problem text paragraphs
 
 ANSWER KEY (if present): output as-is after everything, e.g. "1-А  2-Б  3-В ..."
 
@@ -46,7 +58,7 @@ MATH RULES:
 - ≤ → $\\leq$, ≥ → $\\geq$, ≠ → $\\neq$, ∞ → $\\infty$
 - sin, cos, tan, log, ln → $\\sin$, $\\cos$, $\\tan$, $\\log$, $\\ln$
 
-EXAMPLE OUTPUT:
+FULL EXAMPLE OUTPUT:
 \\section*{35.}
 $\\log_{2} 8$ утгыг ол.
 \\begin{enumerate}
@@ -58,7 +70,8 @@ $\\log_{2} 8$ утгыг ол.
 \\end{enumerate}
 
 \\section*{36.}
-$f(x) = x^{2} + 1$ функцийн $f(3)$ утгыг ол.
+% figure: page 3
+Зурагт үзүүлсэн гурвалжны талбайг ол.
 \\begin{enumerate}
 \\item $8$
 \\item $9$
@@ -70,7 +83,10 @@ $f(x) = x^{2} + 1$ функцийн $f(3)$ утгыг ол.
 %%% ЗАДГАЙ ДААЛГАВАР %%%
 
 \\section*{1.}
-$a + b = 12$, $ab = 35$ бол $a^{2} + b^{2}$ утгыг ол.`
+$a + b = 12$, $ab = 35$ бол $a^{2} + b^{2}$ утгыг ол. Хариу: [a]
+
+\\section*{2.}
+$x^{2} - 5x + 6 = 0$ тэгшитгэлийн шийдүүд $x_1 = $ [a] ба $x_2 = $ [b]`
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).end()
@@ -85,12 +101,13 @@ export default async function handler(req, res) {
     try {
         const stream = client.messages.stream({
             model:      'claude-opus-4-8',
-            max_tokens: 16000,
+            max_tokens: 10000,
             thinking:   { type: 'adaptive' },
-            system:     SYSTEM_PROMPT,
+            // Cache the system prompt — 90% cheaper on repeated calls
+            system: [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
             messages: [{
                 role:    'user',
-                content: `Convert this extracted Mongolian math exam PDF text to LaTeX.\n\nThe text has page markers (=== PAGE N ===). Use them to detect which page contains figure references.\n\nCRITICAL RULES:\n1. Section 1: questions 1–36 with EXACTLY 5 \\\\item lines each.\n2. For questions with diagrams/figures, add "% figure: page N" right after \\\\section*{Q.}\n3. When Section 2 (Задгай даалгавар) begins, output "%%% ЗАДГАЙ ДААЛГАВАР %%%" and never use \\\\item after it.\n\n${text}`,
+                content: `Convert this Mongolian math exam PDF text to LaTeX:\n\n${text}`,
             }],
         })
 

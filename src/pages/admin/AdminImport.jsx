@@ -58,8 +58,9 @@ const VARIANTS     = ['A', 'B', 'C', 'D']
 async function extractPdfData(file) {
     const arrayBuffer = await file.arrayBuffer()
     const doc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
-    const textParts   = []
+    const textParts    = []
     const pageDataUrls = []
+    const pageDims     = []
 
     for (let p = 1; p <= doc.numPages; p++) {
         const page = await doc.getPage(p)
@@ -76,22 +77,82 @@ async function extractPdfData(file) {
         canvas.height  = viewport.height
         await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise
         pageDataUrls.push(canvas.toDataURL('image/png'))
+        pageDims.push({ w: viewport.width, h: viewport.height })
     }
 
-    return { text: textParts.join('\n\n'), pageDataUrls }
+    return { text: cleanText(textParts.join('\n\n')), pageDataUrls, pageDims }
 }
 
-// Parse % figure: page N annotations Claude outputs after \section*{N.}
+// Remove extraction noise to cut input tokens ~10–20%
+function cleanText(raw) {
+    return raw
+        .replace(/[ \t]{2,}/g, ' ')          // collapse repeated spaces/tabs
+        .replace(/(\S)\s*\n\s*(\S)/g, '$1\n$2') // remove blank lines between content
+        .replace(/\n{3,}/g, '\n\n')           // max 2 consecutive newlines
+        .trim()
+}
+
+// Parse % figure: page N → { [qId]: { pageIdx, y1, y2 } }
+// Default crop: top 60% of the page (figures usually sit above answer choices)
 function parseFigureAnnotations(latex) {
     const assignments = {}
     const re = /\\section\*\{(\d+)[^}]*\}[^\n]*\n[^\n]*%\s*figure:\s*page\s*(\d+)/gi
     for (const m of latex.matchAll(re)) {
-        assignments[m[1]] = parseInt(m[2]) - 1  // 0-based page index
+        assignments[m[1]] = { pageIdx: parseInt(m[2]) - 1, y1: 0.0, y2: 0.6 }
     }
     return assignments
 }
 
-// Upload a single page image to Supabase Storage, return public URL
+// Parse задгай даалгавар (section 2) from LaTeX
+function parseSecondSection(latex) {
+    const { section2 } = splitLatexSections(latex)
+    if (!section2.trim()) return []
+    const problems = []
+    let current = null
+    for (const raw of section2.split('\n')) {
+        const line = raw.trim()
+        if (!line || line.match(/^\\(begin|end)\b/) || line.startsWith('%')) continue
+        const sec = line.match(/^\\section\*?\{(\d+)[.)?\s]*\}/)
+        if (sec) {
+            if (current) problems.push(finaliseSecondProblem(current))
+            current = { id: sec[1], parts: [] }
+            continue
+        }
+        if (current) current.parts.push(line)
+    }
+    if (current) problems.push(finaliseSecondProblem(current))
+    return problems
+}
+
+function finaliseSecondProblem(q) {
+    const text = q.parts.join(' ').trim()
+    const slots = ['a','b','c','d','e','f'].filter(l => text.includes(`[${l}]`))
+    const obj = { id: q.id, text }
+    slots.forEach(l => { obj[l] = '' })
+    return obj
+}
+
+// Crop a page image to the vertical range [y1, y2] (0–1 fractions), full width
+async function cropImage(dataUrl, y1, y2, pageDim) {
+    return new Promise(resolve => {
+        const img = new Image()
+        img.onload = () => {
+            const W = img.naturalWidth
+            const H = img.naturalHeight
+            const srcY = Math.round(H * y1)
+            const srcH = Math.max(1, Math.round(H * (y2 - y1)))
+            const canvas = document.createElement('canvas')
+            canvas.width  = W
+            canvas.height = srcH
+            canvas.getContext('2d').drawImage(img, 0, srcY, W, srcH, 0, 0, W, srcH)
+            resolve(canvas.toDataURL('image/png'))
+        }
+        img.onerror = () => resolve(dataUrl)  // fallback to full page
+        img.src = dataUrl
+    })
+}
+
+// Upload a cropped page image to Supabase Storage, return public URL
 async function uploadPageImage(dataUrl, storagePath) {
     const blob = await (await fetch(dataUrl)).blob()
     const { error } = await supabase.storage
@@ -317,8 +378,9 @@ export default function AdminImport() {
     const [latex,            setLatex]            = useState('')
     const [tab,              setTab]              = useState('edit')
     const [error,            setError]            = useState('')
-    const [pageDataUrls,     setPageDataUrls]     = useState([])       // rendered PDF pages
-    const [figureAssignments, setFigureAssignments] = useState({})     // { qId: pageIndex }
+    const [pageDataUrls,      setPageDataUrls]      = useState([])  // rendered PDF pages
+    const [pageDims,          setPageDims]          = useState([])  // [{w,h}] per page
+    const [figureAssignments, setFigureAssignments] = useState({})  // { qId: {pageIdx,y1,y2} }
 
     // latex paste flow
     const [pastedLatex, setPastedLatex] = useState('')
@@ -376,7 +438,7 @@ export default function AdminImport() {
         setFile(null); setYear(String(CURRENT_YEAR)); setVariant('A')
         setStage('idle'); setStatusMsg(''); setLatex(''); setTab('edit')
         setError(''); setSavedStats(null)
-        setPageDataUrls([]); setFigureAssignments({})
+        setPageDataUrls([]); setPageDims([]); setFigureAssignments({})
         setPastedLatex('')
         setManualQuestions([emptyQuestion(1)]); setManualError('')
     }
@@ -389,9 +451,10 @@ export default function AdminImport() {
         setError('')
         try {
             setStatusMsg('Extracting text and rendering pages…')
-            const { text, pageDataUrls: pages } = await extractPdfData(file)
+            const { text, pageDataUrls: pages, pageDims: dims } = await extractPdfData(file)
             if (!text) throw new Error('No text found in PDF.')
             setPageDataUrls(pages)
+            setPageDims(dims)
 
             setStatusMsg('Converting to LaTeX via Claude…')
             const res  = await fetch('/api/pdf-to-latex', {
@@ -431,16 +494,14 @@ export default function AdminImport() {
             const answerKey = parseAnswerKey(plain)
             questions.forEach(q => { q.answer = answerKey[q.id] || '' })
 
-            // Upload figure images and assign img field to questions
+            // Crop + upload figure images and assign img field to questions
             if (Object.keys(figureAssignments).length > 0 && pageDataUrls.length > 0) {
                 setStatusMsg('Uploading question images…')
-                for (const [qId, pageIdx] of Object.entries(figureAssignments)) {
+                for (const [qId, { pageIdx, y1, y2 }] of Object.entries(figureAssignments)) {
                     if (pageIdx < 0 || pageIdx >= pageDataUrls.length) continue
                     try {
-                        const url = await uploadPageImage(
-                            pageDataUrls[pageIdx],
-                            `${year}-${variant}/q${qId}.png`
-                        )
+                        const cropped = await cropImage(pageDataUrls[pageIdx], y1, y2, pageDims[pageIdx])
+                        const url = await uploadPageImage(cropped, `${year}-${variant}/q${qId}.png`)
                         const q = questions.find(q => q.id === qId)
                         if (q) q.img = url
                     } catch {
@@ -449,6 +510,9 @@ export default function AdminImport() {
                 }
             }
 
+            // Parse задгай даалгавар (section 2)
+            const secondProblems = parseSecondSection(latex)
+
             const { error: dbErr } = await supabase
                 .from('exams')
                 .upsert({
@@ -456,7 +520,7 @@ export default function AdminImport() {
                     variant,
                     scoring:        getScoringConfig(year, questions.length),
                     problem:        questions,
-                    second_problem: [],
+                    second_problem: secondProblems,
                 }, { onConflict: 'year,variant' })
 
             if (dbErr) throw new Error(dbErr.message)
@@ -537,45 +601,77 @@ export default function AdminImport() {
                     </Button>
                 </div>
 
-                {/* ── Figure assignments panel ── */}
+                {/* ── Figure crop panel ── */}
                 {Object.keys(figureAssignments).length > 0 && pageDataUrls.length > 0 && (
                     <div className="mb-4 border border-blue-100 rounded-xl bg-blue-50 p-4">
                         <p className="text-xs font-bold text-[#2760A6] mb-3">
                             Question Images — {Object.keys(figureAssignments).length} detected
-                            <span className="ml-2 font-normal text-blue-400">(adjust page assignments if needed)</span>
+                            <span className="ml-2 font-normal text-blue-400">Drag sliders to crop each figure</span>
                         </p>
-                        <div className="flex flex-wrap gap-3">
+                        <div className="flex flex-col gap-3">
                             {Object.entries(figureAssignments)
                                 .sort((a, b) => parseInt(a[0]) - parseInt(b[0]))
-                                .map(([qId, pageIdx]) => (
-                                <div key={qId} className="flex flex-col gap-1.5 items-center bg-white rounded-xl border border-blue-100 p-2 shadow-sm">
-                                    <span className="text-xs font-bold text-[#E75234]">Q{qId}</span>
-                                    {pageDataUrls[pageIdx] && (
-                                        <img
-                                            src={pageDataUrls[pageIdx]}
-                                            alt={`Page ${pageIdx + 1}`}
-                                            className="w-24 h-32 object-cover object-top rounded border border-gray-100"
-                                        />
-                                    )}
-                                    <select
-                                        value={pageIdx}
-                                        onChange={e => setFigureAssignments(prev => ({ ...prev, [qId]: parseInt(e.target.value) }))}
-                                        disabled={isSaving}
-                                        className="text-xs border border-gray-200 rounded px-1.5 py-0.5 w-full focus:outline-none focus:ring-1 focus:ring-[#E75234]"
-                                    >
-                                        {pageDataUrls.map((_, i) => (
-                                            <option key={i} value={i}>Page {i + 1}</option>
-                                        ))}
-                                    </select>
-                                    <button
-                                        onClick={() => setFigureAssignments(prev => {
-                                            const next = { ...prev }; delete next[qId]; return next
-                                        })}
-                                        disabled={isSaving}
-                                        className="text-xs text-gray-400 hover:text-red-400 transition-colors"
-                                    >remove</button>
-                                </div>
-                            ))}
+                                .map(([qId, { pageIdx, y1, y2 }]) => {
+                                    const dim = pageDims[pageIdx] || { w: 892, h: 1263 }
+                                    const aspect = dim.w / dim.h  // ~0.706 for A4
+                                    const previewW = 160
+                                    const previewH = Math.round(previewW / aspect * (y2 - y1))
+                                    const imgH     = Math.round(previewW / aspect)
+                                    const setFA = (patch) => setFigureAssignments(prev => ({
+                                        ...prev, [qId]: { ...prev[qId], ...patch }
+                                    }))
+                                    return (
+                                        <div key={qId} className="flex items-start gap-4 bg-white rounded-xl border border-blue-100 p-3 shadow-sm">
+                                            {/* Crop preview */}
+                                            <div className="shrink-0 flex flex-col items-center gap-1">
+                                                <span className="text-xs font-bold text-[#E75234]">Q{qId}</span>
+                                                <div style={{ width: previewW, height: previewH, overflow: 'hidden', borderRadius: 6, border: '1px solid #e5e7eb', position: 'relative' }}>
+                                                    <img
+                                                        src={pageDataUrls[pageIdx]}
+                                                        alt=""
+                                                        style={{ position: 'absolute', width: previewW, height: imgH, top: -Math.round(imgH * y1), objectFit: 'fill' }}
+                                                    />
+                                                </div>
+                                            </div>
+                                            {/* Controls */}
+                                            <div className="flex-1 flex flex-col gap-2 min-w-0">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xs text-gray-500 w-12 shrink-0">Top {Math.round(y1*100)}%</span>
+                                                    <input type="range" min="0" max="95" step="1"
+                                                        value={Math.round(y1*100)}
+                                                        disabled={isSaving}
+                                                        onChange={e => { const v = parseInt(e.target.value)/100; setFA({ y1: v, y2: Math.max(v+0.05, y2) }) }}
+                                                        className="flex-1 accent-[#2760A6]"
+                                                    />
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xs text-gray-500 w-12 shrink-0">Bot {Math.round(y2*100)}%</span>
+                                                    <input type="range" min="5" max="100" step="1"
+                                                        value={Math.round(y2*100)}
+                                                        disabled={isSaving}
+                                                        onChange={e => { const v = parseInt(e.target.value)/100; setFA({ y2: v, y1: Math.min(y1, v-0.05) }) }}
+                                                        className="flex-1 accent-[#2760A6]"
+                                                    />
+                                                </div>
+                                                <select
+                                                    value={pageIdx}
+                                                    onChange={e => setFA({ pageIdx: parseInt(e.target.value) })}
+                                                    disabled={isSaving}
+                                                    className="text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-[#E75234] w-28"
+                                                >
+                                                    {pageDataUrls.map((_, i) => (
+                                                        <option key={i} value={i}>Page {i + 1}</option>
+                                                    ))}
+                                                </select>
+                                                <button
+                                                    onClick={() => setFigureAssignments(prev => { const n={...prev}; delete n[qId]; return n })}
+                                                    disabled={isSaving}
+                                                    className="text-xs text-gray-400 hover:text-red-400 transition-colors w-fit"
+                                                >remove</button>
+                                            </div>
+                                        </div>
+                                    )
+                                })}
                         </div>
                     </div>
                 )}
