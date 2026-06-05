@@ -43,3 +43,29 @@ CREATE POLICY "Admin can manage exams" ON exams
   FOR ALL TO authenticated
   USING  ((auth.jwt() ->> 'email') = ANY(ARRAY['k2naysaa@gmail.com']::text[]))
   WITH CHECK ((auth.jwt() ->> 'email') = ANY(ARRAY['k2naysaa@gmail.com']::text[]));
+
+-- ── Storage: exam-images bucket ───────────────────────────────
+-- Stores question figure images uploaded during PDF import.
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('exam-images', 'exam-images', true)
+ON CONFLICT DO NOTHING;
+
+-- Anyone can view images (needed for test page)
+CREATE POLICY "Public read exam images"
+  ON storage.objects FOR SELECT
+  USING (bucket_id = 'exam-images');
+
+-- Only admins can upload
+CREATE POLICY "Admin upload exam images"
+  ON storage.objects FOR INSERT TO authenticated
+  WITH CHECK (
+    bucket_id = 'exam-images'
+    AND (auth.jwt() ->> 'email') = ANY(ARRAY['k2naysaa@gmail.com']::text[])
+  );
+
+CREATE POLICY "Admin update exam images"
+  ON storage.objects FOR UPDATE TO authenticated
+  USING (
+    bucket_id = 'exam-images'
+    AND (auth.jwt() ->> 'email') = ANY(ARRAY['k2naysaa@gmail.com']::text[])
+  );

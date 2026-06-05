@@ -9,6 +9,15 @@ const SYSTEM_PROMPT = `You are a LaTeX converter for Mongolian math exam PDFs (�
 - Section 2: "Задгай даалгавар" / "Хоёрдугаар хэсэг" — open-ended fill-in problems (NOT multiple choice)
   These two sections are COMPLETELY SEPARATE. Never mix them.
 
+FIGURE DETECTION — very important:
+When a question references a visual (diagram, graph, geometric figure, coordinate plane, etc.):
+- Find the PDF page number where it appears (use the "=== PAGE N ===" markers in the input text)
+- Output % figure: page N on a NEW line immediately after \section*{questionNumber.}
+Example:
+\section*{7.}
+% figure: page 2
+Зурагт үзүүлсэн гурвалжны талбайг ол.
+
 SECTION BOUNDARY RULE — most important:
 When you see text like "Хоёрдугаар хэсэг", "ЗАДГАЙ ДААЛГАВАР", "нөхөх", or question 36 ends and a new problem style begins:
 Output this EXACT marker on its own line (nothing else on that line):
@@ -81,7 +90,7 @@ export default async function handler(req, res) {
             system:     SYSTEM_PROMPT,
             messages: [{
                 role:    'user',
-                content: `Convert this extracted Mongolian math exam PDF text to LaTeX.\n\nCRITICAL: Section 1 has questions 1–36 with EXACTLY 5 \\\\item lines each. When Section 2 (Задгай даалгавар / Хоёрдугаар хэсэг) begins, output the line:\n%%% ЗАДГАЙ ДААЛГАВАР %%%\nand NEVER use \\\\item after that marker.\n\n${text}`,
+                content: `Convert this extracted Mongolian math exam PDF text to LaTeX.\n\nThe text has page markers (=== PAGE N ===). Use them to detect which page contains figure references.\n\nCRITICAL RULES:\n1. Section 1: questions 1–36 with EXACTLY 5 \\\\item lines each.\n2. For questions with diagrams/figures, add "% figure: page N" right after \\\\section*{Q.}\n3. When Section 2 (Задгай даалгавар) begins, output "%%% ЗАДГАЙ ДААЛГАВАР %%%" and never use \\\\item after it.\n\n${text}`,
             }],
         })
 

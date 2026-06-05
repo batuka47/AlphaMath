@@ -53,16 +53,52 @@ const CURRENT_YEAR = new Date().getFullYear()
 const YEARS        = Array.from({ length: CURRENT_YEAR - 2006 + 1 }, (_, i) => String(2006 + i))
 const VARIANTS     = ['A', 'B', 'C', 'D']
 
-// ── PDF text extraction ───────────────────────────────────────────────────────
+// ── PDF extraction: text + page images ───────────────────────────────────────
 
-async function extractPdfText(file) {
-    const doc = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise
-    let text = ''
+async function extractPdfData(file) {
+    const arrayBuffer = await file.arrayBuffer()
+    const doc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
+    const textParts   = []
+    const pageDataUrls = []
+
     for (let p = 1; p <= doc.numPages; p++) {
-        const content = await (await doc.getPage(p)).getTextContent()
-        text += content.items.map(i => i.str).join(' ') + '\n'
+        const page = await doc.getPage(p)
+
+        // Text — with page markers so Claude knows page boundaries
+        const content  = await page.getTextContent()
+        const pageText = content.items.map(i => i.str).join(' ')
+        textParts.push(`=== PAGE ${p} ===\n${pageText}`)
+
+        // Render page to canvas at 1.5× for good quality
+        const viewport = page.getViewport({ scale: 1.5 })
+        const canvas   = document.createElement('canvas')
+        canvas.width   = viewport.width
+        canvas.height  = viewport.height
+        await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise
+        pageDataUrls.push(canvas.toDataURL('image/png'))
     }
-    return text.trim()
+
+    return { text: textParts.join('\n\n'), pageDataUrls }
+}
+
+// Parse % figure: page N annotations Claude outputs after \section*{N.}
+function parseFigureAnnotations(latex) {
+    const assignments = {}
+    const re = /\\section\*\{(\d+)[^}]*\}[^\n]*\n[^\n]*%\s*figure:\s*page\s*(\d+)/gi
+    for (const m of latex.matchAll(re)) {
+        assignments[m[1]] = parseInt(m[2]) - 1  // 0-based page index
+    }
+    return assignments
+}
+
+// Upload a single page image to Supabase Storage, return public URL
+async function uploadPageImage(dataUrl, storagePath) {
+    const blob = await (await fetch(dataUrl)).blob()
+    const { error } = await supabase.storage
+        .from('exam-images')
+        .upload(storagePath, blob, { contentType: 'image/png', upsert: true })
+    if (error) throw new Error(`Storage upload failed: ${error.message}`)
+    return supabase.storage.from('exam-images').getPublicUrl(storagePath).data.publicUrl
 }
 
 // ── LaTeX preview renderer ────────────────────────────────────────────────────
@@ -246,8 +282,9 @@ function latexToPlainText(src) {
             continue
         }
 
-        // skip structural LaTeX commands
+        // skip structural LaTeX commands and figure annotation comments
         if (line.match(/^\\(begin|end|documentclass|usepackage|title|author|date|maketitle)\b/)) continue
+        if (line.match(/^%\s*figure:\s*page\s*\d+/i)) continue
 
         // pass through question text, answer keys, and plain-numbered lines
         out.push(line)
@@ -274,12 +311,14 @@ export default function AdminImport() {
     const [savedStats, setSavedStats] = useState(null)
 
     // pdf flow
-    const [file,      setFile]      = useState(null)
-    const [stage,     setStage]     = useState('idle')
-    const [statusMsg, setStatusMsg] = useState('')
-    const [latex,     setLatex]     = useState('')
-    const [tab,       setTab]       = useState('edit')
-    const [error,     setError]     = useState('')
+    const [file,             setFile]             = useState(null)
+    const [stage,            setStage]            = useState('idle')
+    const [statusMsg,        setStatusMsg]        = useState('')
+    const [latex,            setLatex]            = useState('')
+    const [tab,              setTab]              = useState('edit')
+    const [error,            setError]            = useState('')
+    const [pageDataUrls,     setPageDataUrls]     = useState([])       // rendered PDF pages
+    const [figureAssignments, setFigureAssignments] = useState({})     // { qId: pageIndex }
 
     // latex paste flow
     const [pastedLatex, setPastedLatex] = useState('')
@@ -337,6 +376,7 @@ export default function AdminImport() {
         setFile(null); setYear(String(CURRENT_YEAR)); setVariant('A')
         setStage('idle'); setStatusMsg(''); setLatex(''); setTab('edit')
         setError(''); setSavedStats(null)
+        setPageDataUrls([]); setFigureAssignments({})
         setPastedLatex('')
         setManualQuestions([emptyQuestion(1)]); setManualError('')
     }
@@ -348,9 +388,10 @@ export default function AdminImport() {
         setStage('processing')
         setError('')
         try {
-            setStatusMsg('Extracting text from PDF…')
-            const text = await extractPdfText(file)
+            setStatusMsg('Extracting text and rendering pages…')
+            const { text, pageDataUrls: pages } = await extractPdfData(file)
             if (!text) throw new Error('No text found in PDF.')
+            setPageDataUrls(pages)
 
             setStatusMsg('Converting to LaTeX via Claude…')
             const res  = await fetch('/api/pdf-to-latex', {
@@ -362,6 +403,7 @@ export default function AdminImport() {
             if (!res.ok) throw new Error(data.error || 'Conversion failed.')
 
             setLatex(data.latex)
+            setFigureAssignments(parseFigureAnnotations(data.latex))
             setStage('reviewing')
         } catch (err) {
             setError(err.message)
@@ -378,7 +420,6 @@ export default function AdminImport() {
             const plain     = latexToPlainText(latex)
             let   questions = parseQuestions(plain)
 
-            // fallback: try raw latex in case it already uses plain "1. text" numbering
             if (questions.length === 0) questions = parseQuestions(latex)
 
             if (questions.length === 0) throw new Error(
@@ -389,6 +430,24 @@ export default function AdminImport() {
 
             const answerKey = parseAnswerKey(plain)
             questions.forEach(q => { q.answer = answerKey[q.id] || '' })
+
+            // Upload figure images and assign img field to questions
+            if (Object.keys(figureAssignments).length > 0 && pageDataUrls.length > 0) {
+                setStatusMsg('Uploading question images…')
+                for (const [qId, pageIdx] of Object.entries(figureAssignments)) {
+                    if (pageIdx < 0 || pageIdx >= pageDataUrls.length) continue
+                    try {
+                        const url = await uploadPageImage(
+                            pageDataUrls[pageIdx],
+                            `${year}-${variant}/q${qId}.png`
+                        )
+                        const q = questions.find(q => q.id === qId)
+                        if (q) q.img = url
+                    } catch {
+                        // Storage not set up or upload failed — skip silently
+                    }
+                }
+            }
 
             const { error: dbErr } = await supabase
                 .from('exams')
@@ -407,7 +466,7 @@ export default function AdminImport() {
             setStage('saved')
         } catch (err) {
             setError(err.message)
-            setStage('reviewing') // go back so user can edit
+            setStage('reviewing')
         }
     }
 
@@ -473,10 +532,53 @@ export default function AdminImport() {
                     <Button onClick={handleSave} disabled={isSaving}
                         className="bg-[#E75234] hover:bg-[#c94220] text-white px-6">
                         {isSaving
-                            ? <><Loader2 size={15} className="animate-spin mr-2" />Saving…</>
+                            ? <><Loader2 size={15} className="animate-spin mr-2" />{statusMsg || 'Saving…'}</>
                             : 'Save to Site'}
                     </Button>
                 </div>
+
+                {/* ── Figure assignments panel ── */}
+                {Object.keys(figureAssignments).length > 0 && pageDataUrls.length > 0 && (
+                    <div className="mb-4 border border-blue-100 rounded-xl bg-blue-50 p-4">
+                        <p className="text-xs font-bold text-[#2760A6] mb-3">
+                            Question Images — {Object.keys(figureAssignments).length} detected
+                            <span className="ml-2 font-normal text-blue-400">(adjust page assignments if needed)</span>
+                        </p>
+                        <div className="flex flex-wrap gap-3">
+                            {Object.entries(figureAssignments)
+                                .sort((a, b) => parseInt(a[0]) - parseInt(b[0]))
+                                .map(([qId, pageIdx]) => (
+                                <div key={qId} className="flex flex-col gap-1.5 items-center bg-white rounded-xl border border-blue-100 p-2 shadow-sm">
+                                    <span className="text-xs font-bold text-[#E75234]">Q{qId}</span>
+                                    {pageDataUrls[pageIdx] && (
+                                        <img
+                                            src={pageDataUrls[pageIdx]}
+                                            alt={`Page ${pageIdx + 1}`}
+                                            className="w-24 h-32 object-cover object-top rounded border border-gray-100"
+                                        />
+                                    )}
+                                    <select
+                                        value={pageIdx}
+                                        onChange={e => setFigureAssignments(prev => ({ ...prev, [qId]: parseInt(e.target.value) }))}
+                                        disabled={isSaving}
+                                        className="text-xs border border-gray-200 rounded px-1.5 py-0.5 w-full focus:outline-none focus:ring-1 focus:ring-[#E75234]"
+                                    >
+                                        {pageDataUrls.map((_, i) => (
+                                            <option key={i} value={i}>Page {i + 1}</option>
+                                        ))}
+                                    </select>
+                                    <button
+                                        onClick={() => setFigureAssignments(prev => {
+                                            const next = { ...prev }; delete next[qId]; return next
+                                        })}
+                                        disabled={isSaving}
+                                        className="text-xs text-gray-400 hover:text-red-400 transition-colors"
+                                    >remove</button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 {tab === 'edit' && (
                     <textarea
