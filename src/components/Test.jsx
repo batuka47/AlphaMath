@@ -144,9 +144,11 @@ function Test(props) {
                         <img
                             ref={imageRef}
                             src={props.img}
-                            className="max-w-xl w-auto h-auto object-contain rounded-lg border border-gray-100 cursor-zoom-in"
+                            className="max-w-xl w-auto h-auto object-contain rounded-lg border border-gray-200 cursor-zoom-in block"
+                            style={{ minHeight: 80, minWidth: 80, background: '#f9fafb' }}
                             alt=""
                             onClick={() => window.open(props.img, '_blank')}
+                            onError={e => { e.currentTarget.style.outline = '2px dashed #E75234' }}
                         />
                     </div>
                 )}
@@ -172,8 +174,11 @@ function Test(props) {
                     <div className="w-full mb-4">
                         <img
                             src={props.img}
-                            className="w-full h-auto object-contain max-h-72 rounded-lg border border-gray-100"
+                            className="w-full h-auto object-contain max-h-72 rounded-lg border border-gray-200 block"
+                            style={{ minHeight: 60, background: '#f9fafb' }}
                             alt=""
+                            onClick={() => window.open(props.img, '_blank')}
+                            onError={e => { e.currentTarget.style.outline = '2px dashed #E75234' }}
                         />
                     </div>
                 )}

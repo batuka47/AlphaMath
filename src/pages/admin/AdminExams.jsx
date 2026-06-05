@@ -101,6 +101,22 @@ function QuestionEditor({ question, onChange, onRemove }) {
                     />
                 </div>
             )}
+
+            {/* Image URL */}
+            <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-400 shrink-0 w-7">img</span>
+                <input
+                    type="text"
+                    value={q.img || ''}
+                    onChange={e => set('img', e.target.value)}
+                    placeholder="Image URL (leave blank for none)"
+                    className="flex-1 h-7 rounded-lg border border-gray-200 px-2 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-[#E75234] text-gray-500"
+                />
+                {q.img && (
+                    <a href={q.img} target="_blank" rel="noopener noreferrer"
+                        className="text-xs text-[#2760A6] hover:underline shrink-0">view</a>
+                )}
+            </div>
         </div>
     )
 }

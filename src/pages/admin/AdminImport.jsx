@@ -94,10 +94,13 @@ function cleanText(raw) {
 }
 
 // Parse % figure: page N → { [qId]: { pageIdx, y1, y2, x1, x2 } }
+// Only scan Section 1 (before ЗАДГАЙ marker) — prevents \section*{2.1} in Section 2
+// from being confused with MC question 2.
 function parseFigureAnnotations(latex) {
+    const { section1 } = splitLatexSections(latex)
     const assignments = {}
     const re = /\\section\*\{(\d+)[^}]*\}[^\n]*\n[^\n]*%\s*figure:\s*page\s*(\d+)/gi
-    for (const m of latex.matchAll(re)) {
+    for (const m of section1.matchAll(re)) {
         assignments[m[1]] = { pageIdx: parseInt(m[2]) - 1, y1: 0.0, y2: 0.6, x1: 0.0, x2: 1.0 }
     }
     return assignments
@@ -625,41 +628,60 @@ export default function AdminImport() {
                                 .map(([qId, { pageIdx, y1, y2, x1 = 0, x2 = 1 }]) => {
                                     const dim = pageDims[pageIdx] || { w: 892, h: 1263 }
                                     const aspect = dim.w / dim.h
-                                    // Thumbnail: always show full page at fixed width
+                                    // Thumbnail: show only the cropped area at fixed width
                                     const thumbW = 120
-                                    const thumbH = Math.round(thumbW / aspect)
+                                    const imgWThumb = thumbW / (x2 - x1)
+                                    const imgHThumb = imgWThumb / aspect
+                                    const cropHThumb = Math.max(30, Math.round(imgHThumb * (y2 - y1)))
                                     const setFA = patch => setFigureAssignments(prev => ({
                                         ...prev, [qId]: { ...prev[qId], ...patch }
                                     }))
                                     return (
                                         <div key={qId} className="flex items-start gap-4 bg-white rounded-xl border border-blue-100 p-3 shadow-sm">
-                                            {/* Full-page thumbnail with crop overlay */}
+                                            {/* Cropped-area thumbnail */}
                                             <div className="shrink-0 flex flex-col items-center gap-1">
-                                                <span className="text-xs font-bold text-[#E75234]">Q{qId}</span>
+                                                {/* Editable question ID — change if AI assigned to wrong question */}
+                                                <div className="flex items-center gap-0.5">
+                                                    <span className="text-xs font-bold text-[#E75234]">Q</span>
+                                                    <input
+                                                        type="text"
+                                                        defaultValue={qId}
+                                                        title="Change question number"
+                                                        disabled={isSaving}
+                                                        onBlur={e => {
+                                                            const newId = e.target.value.trim()
+                                                            if (!newId || newId === qId) return
+                                                            setFigureAssignments(prev => {
+                                                                const n = { ...prev }
+                                                                n[newId] = n[qId]
+                                                                delete n[qId]
+                                                                return n
+                                                            })
+                                                        }}
+                                                        onKeyDown={e => e.key === 'Enter' && e.currentTarget.blur()}
+                                                        className="w-10 text-xs font-bold text-[#E75234] border border-[#E75234]/40 rounded px-1 py-0.5 text-center focus:outline-none focus:border-[#E75234] bg-transparent disabled:opacity-50"
+                                                    />
+                                                </div>
                                                 <div
                                                     onClick={() => setLightbox({ qId })}
                                                     title="Click to enlarge"
                                                     style={{
-                                                        width: thumbW, height: thumbH,
+                                                        width: thumbW, height: cropHThumb,
                                                         position: 'relative', overflow: 'hidden',
-                                                        borderRadius: 4, border: '1px solid #e5e7eb',
+                                                        borderRadius: 4, border: '2px solid #E75234',
                                                         cursor: 'zoom-in', flexShrink: 0,
                                                     }}
                                                 >
-                                                    {/* Full page image */}
                                                     <img src={pageDataUrls[pageIdx]} alt=""
-                                                        style={{ width: thumbW, height: thumbH, display: 'block' }} />
-                                                    {/* Dark overlay on non-crop areas */}
-                                                    {/* top band */}
-                                                    <div style={{ position:'absolute', top:0, left:0, right:0, height: Math.round(y1*thumbH), background:'rgba(0,0,0,0.55)' }} />
-                                                    {/* bottom band */}
-                                                    <div style={{ position:'absolute', bottom:0, left:0, right:0, height: Math.round((1-y2)*thumbH), background:'rgba(0,0,0,0.55)' }} />
-                                                    {/* left band (between y1 and y2) */}
-                                                    <div style={{ position:'absolute', top: Math.round(y1*thumbH), height: Math.round((y2-y1)*thumbH), left:0, width: Math.round(x1*thumbW), background:'rgba(0,0,0,0.55)' }} />
-                                                    {/* right band */}
-                                                    <div style={{ position:'absolute', top: Math.round(y1*thumbH), height: Math.round((y2-y1)*thumbH), right:0, width: Math.round((1-x2)*thumbW), background:'rgba(0,0,0,0.55)' }} />
-                                                    {/* crop region border */}
-                                                    <div style={{ position:'absolute', top: Math.round(y1*thumbH), left: Math.round(x1*thumbW), width: Math.round((x2-x1)*thumbW), height: Math.round((y2-y1)*thumbH), border:'2px solid #E75234', boxSizing:'border-box' }} />
+                                                        style={{
+                                                            position: 'absolute',
+                                                            width: Math.round(imgWThumb),
+                                                            height: Math.round(imgHThumb),
+                                                            left: -Math.round(imgWThumb * x1),
+                                                            top: -Math.round(imgHThumb * y1),
+                                                            display: 'block',
+                                                        }}
+                                                    />
                                                 </div>
                                                 <span className="text-[10px] text-gray-400">click to enlarge</span>
                                             </div>
