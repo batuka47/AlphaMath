@@ -201,7 +201,12 @@ function LaTeXInput({ value, onChange, placeholder, disabled }) {
 const OPTION_LETTERS = ['A', 'B', 'C', 'D', 'E']
 
 function latexToPlainText(src) {
-    const lines = src.split('\n')
+    // Expand inline \item chains onto separate lines before splitting
+    const expanded = src
+        .replace(/\\item\s*(?=\\item)/g, '\\item\n')   // back-to-back \item
+        .replace(/(\\end\{enumerate\})\s*(?=\\item)/g, '$1\n')  // \end right before \item
+
+    const lines = expanded.split('\n')
     const out   = []
     let optionIndex = 0
 
@@ -214,11 +219,15 @@ function latexToPlainText(src) {
         if (sec) { out.push(`${sec[1]}.`); optionIndex = 0; continue }
 
         // \item [optional label] text → "A) text"
-        if (line.startsWith('\\item')) {
-            const text   = line.replace(/^\\item(?:\[.*?\])?\s*/, '')
-            const letter = OPTION_LETTERS[optionIndex] || '?'
-            if (text) out.push(`${letter}) ${text}`)
-            optionIndex++
+        // Handle the case where \item appears mid-line (e.g. after \begin{enumerate})
+        if (line.includes('\\item')) {
+            const items = line.split(/\\item(?:\[.*?\])?/).slice(1)
+            for (const itemText of items) {
+                const text   = itemText.trim()
+                const letter = OPTION_LETTERS[optionIndex] || '?'
+                if (text && !text.startsWith('%')) out.push(`${letter}) ${text}`)
+                optionIndex++
+            }
             continue
         }
 
@@ -328,7 +337,7 @@ export default function AdminImport() {
             const text = await extractPdfText(file)
             if (!text) throw new Error('No text found in PDF.')
 
-            setStatusMsg('Converting to LaTeX via Gemini…')
+            setStatusMsg('Converting to LaTeX via Claude…')
             const res  = await fetch('/api/pdf-to-latex', {
                 method:  'POST',
                 headers: { 'Content-Type': 'application/json' },
