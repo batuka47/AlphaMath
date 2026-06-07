@@ -108,9 +108,13 @@ export default async function handler(req, res) {
         // worth of LaTeX. 10K could be entirely consumed by thinking on a long PDF,
         // leaving no text block (which looked like "no response").
         const stream = client.messages.stream({
-            model:      'claude-opus-4-8',
+            model:      'claude-sonnet-4-6',
             max_tokens: 32000,
-            thinking:   { type: 'adaptive' },
+            // Sonnet 4.6 is ~2–3× faster than Opus — keeps a full exam under
+            // Vercel's function timeout. Low effort: extraction is mechanical,
+            // so deep thinking only adds latency.
+            thinking:      { type: 'adaptive' },
+            output_config: { effort: 'low' },
             // Cache the system prompt — 90% cheaper on repeated calls
             system: [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
             messages: [{
