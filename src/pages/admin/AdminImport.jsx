@@ -1,11 +1,11 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
-import { createPortal } from 'react-dom'
+import { useState, useRef, useCallback } from 'react'
 import { useTaskRefresh } from '@/lib/TaskContext'
 import * as pdfjsLib from 'pdfjs-dist'
 import katex from 'katex'
 import 'katex/dist/katex.min.css'
 import {
     Upload, FileText, CheckCircle, Loader2, AlertCircle, PlusCircle, Trash2, PenLine, Code,
+    Image as ImageIcon, X,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -54,56 +54,30 @@ const CURRENT_YEAR = new Date().getFullYear()
 const YEARS        = Array.from({ length: CURRENT_YEAR - 2006 + 1 }, (_, i) => String(2006 + i))
 const VARIANTS     = ['A', 'B', 'C', 'D']
 
-// ── PDF extraction: text + page images ───────────────────────────────────────
+// ── PDF extraction: text only ─────────────────────────────────────────────────
 
-async function extractPdfData(file) {
+async function extractPdfText(file) {
     const arrayBuffer = await file.arrayBuffer()
     const doc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
-    const textParts    = []
-    const pageDataUrls = []
-    const pageDims     = []
+    const textParts = []
 
     for (let p = 1; p <= doc.numPages; p++) {
-        const page = await doc.getPage(p)
-
-        // Text — with page markers so Claude knows page boundaries
-        const content  = await page.getTextContent()
-        const pageText = content.items.map(i => i.str).join(' ')
-        textParts.push(`=== PAGE ${p} ===\n${pageText}`)
-
-        // Render page to canvas at 1.5× for good quality
-        const viewport = page.getViewport({ scale: 1.5 })
-        const canvas   = document.createElement('canvas')
-        canvas.width   = viewport.width
-        canvas.height  = viewport.height
-        await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise
-        pageDataUrls.push(canvas.toDataURL('image/png'))
-        pageDims.push({ w: viewport.width, h: viewport.height })
+        const page    = await doc.getPage(p)
+        const content = await page.getTextContent()
+        // Page markers help Claude understand page boundaries
+        textParts.push(`=== PAGE ${p} ===\n${content.items.map(i => i.str).join(' ')}`)
     }
 
-    return { text: cleanText(textParts.join('\n\n')), pageDataUrls, pageDims }
+    return cleanText(textParts.join('\n\n'))
 }
 
 // Remove extraction noise to cut input tokens ~10–20%
 function cleanText(raw) {
     return raw
-        .replace(/[ \t]{2,}/g, ' ')          // collapse repeated spaces/tabs
+        .replace(/[ \t]{2,}/g, ' ')             // collapse repeated spaces/tabs
         .replace(/(\S)\s*\n\s*(\S)/g, '$1\n$2') // remove blank lines between content
-        .replace(/\n{3,}/g, '\n\n')           // max 2 consecutive newlines
+        .replace(/\n{3,}/g, '\n\n')             // max 2 consecutive newlines
         .trim()
-}
-
-// Parse % figure: page N → { [qId]: { pageIdx, y1, y2, x1, x2 } }
-// Only scan Section 1 (before ЗАДГАЙ marker) — prevents \section*{2.1} in Section 2
-// from being confused with MC question 2.
-function parseFigureAnnotations(latex) {
-    const { section1 } = splitLatexSections(latex)
-    const assignments = {}
-    const re = /\\section\*\{(\d+)[^}]*\}[^\n]*\n[^\n]*%\s*figure:\s*page\s*(\d+)/gi
-    for (const m of section1.matchAll(re)) {
-        assignments[m[1]] = { pageIdx: parseInt(m[2]) - 1, y1: 0.0, y2: 0.6, x1: 0.0, x2: 1.0 }
-    }
-    return assignments
 }
 
 // Parse задгай даалгавар (section 2) — handles ids like "1", "2.1", "2.2" etc.
@@ -136,36 +110,24 @@ function finaliseSecondProblem(q) {
     return obj
 }
 
-// Crop a page image by [y1,y2] vertically and [x1,x2] horizontally (all 0–1 fractions)
-async function cropImage(dataUrl, y1, y2, x1, x2) {
-    return new Promise(resolve => {
-        const img = new Image()
-        img.onload = () => {
-            const W = img.naturalWidth
-            const H = img.naturalHeight
-            const srcX = Math.round(W * x1)
-            const srcY = Math.round(H * y1)
-            const srcW = Math.max(1, Math.round(W * (x2 - x1)))
-            const srcH = Math.max(1, Math.round(H * (y2 - y1)))
-            const canvas = document.createElement('canvas')
-            canvas.width  = srcW
-            canvas.height = srcH
-            canvas.getContext('2d').drawImage(img, srcX, srcY, srcW, srcH, 0, 0, srcW, srcH)
-            resolve(canvas.toDataURL('image/png'))
-        }
-        img.onerror = () => resolve(dataUrl)
-        img.src = dataUrl
-    })
-}
-
-// Upload a cropped page image to Supabase Storage, return public URL
-async function uploadPageImage(dataUrl, storagePath) {
+// Upload an image (data URL) to Supabase Storage, return its public URL
+async function uploadImage(dataUrl, storagePath) {
     const blob = await (await fetch(dataUrl)).blob()
     const { error } = await supabase.storage
         .from('exam-images')
-        .upload(storagePath, blob, { contentType: 'image/png', upsert: true })
+        .upload(storagePath, blob, { contentType: blob.type || 'image/png', upsert: true })
     if (error) throw new Error(`Storage upload failed: ${error.message}`)
     return supabase.storage.from('exam-images').getPublicUrl(storagePath).data.publicUrl
+}
+
+// Read a File into a data URL
+function fileToDataUrl(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload  = () => resolve(reader.result)
+        reader.onerror = reject
+        reader.readAsDataURL(file)
+    })
 }
 
 // ── LaTeX preview renderer ────────────────────────────────────────────────────
@@ -360,6 +322,23 @@ function latexToPlainText(src) {
     return out.join('\n')
 }
 
+// Parse reviewed LaTeX into { questions, secondProblems }. Throws if no questions.
+function parseReviewedLatex(latex) {
+    const plain     = latexToPlainText(latex)
+    let   questions = parseQuestions(plain)
+    if (questions.length === 0) questions = parseQuestions(latex)
+    if (questions.length === 0) throw new Error(
+        'No questions found. Make sure each question starts with a number: ' +
+        '"1." on its own line, or "1. question text". ' +
+        'Options should use "A) …" / "А) …" or \\item.'
+    )
+
+    const answerKey = parseAnswerKey(plain)
+    questions.forEach(q => { q.answer = answerKey[q.id] || '' })
+
+    return { questions, secondProblems: parseSecondSection(latex) }
+}
+
 // ── Manual question helpers ───────────────────────────────────────────────────
 
 function emptyQuestion(num) {
@@ -372,22 +351,20 @@ export default function AdminImport() {
     const refreshTasks = useTaskRefresh()
 
     // shared
-    const [mode,    setMode]    = useState('pdf') // 'pdf' | 'manual'
+    const [mode,    setMode]    = useState('pdf') // 'pdf' | 'latex' | 'manual'
     const [year,    setYear]    = useState(String(CURRENT_YEAR))
     const [variant, setVariant] = useState('A')
     const [savedStats, setSavedStats] = useState(null)
 
-    // pdf flow
-    const [file,             setFile]             = useState(null)
-    const [stage,            setStage]            = useState('idle')
-    const [statusMsg,        setStatusMsg]        = useState('')
-    const [latex,            setLatex]            = useState('')
-    const [tab,              setTab]              = useState('edit')
-    const [error,            setError]            = useState('')
-    const [pageDataUrls,      setPageDataUrls]      = useState([])  // rendered PDF pages
-    const [pageDims,          setPageDims]          = useState([])  // [{w,h}] per page
-    const [figureAssignments, setFigureAssignments] = useState({})  // { qId: {pageIdx,y1,y2,x1,x2} }
-    const [lightbox,          setLightbox]          = useState(null) // { qId } | null
+    // pdf / latex flow
+    const [file,      setFile]      = useState(null)
+    const [stage,     setStage]     = useState('idle') // idle|processing|reviewing|images|saving|saved|error
+    const [statusMsg, setStatusMsg] = useState('')
+    const [latex,     setLatex]     = useState('')
+    const [tab,       setTab]       = useState('edit')
+    const [error,     setError]     = useState('')
+    const [parsed,    setParsed]    = useState(null)   // { questions, secondProblems } after review
+    const [images,    setImages]    = useState([])     // [{ uid, name, dataUrl, target }]
 
     // latex paste flow
     const [pastedLatex, setPastedLatex] = useState('')
@@ -396,13 +373,6 @@ export default function AdminImport() {
     const [manualQuestions, setManualQuestions] = useState([emptyQuestion(1)])
     const [manualSaving,    setManualSaving]    = useState(false)
     const [manualError,     setManualError]     = useState('')
-
-    useEffect(() => {
-        if (!lightbox) return
-        const handler = e => { if (e.key === 'Escape') setLightbox(null) }
-        window.addEventListener('keydown', handler)
-        return () => window.removeEventListener('keydown', handler)
-    }, [lightbox])
 
     function addQuestion() {
         setManualQuestions(prev => [...prev, emptyQuestion(prev.length + 1)])
@@ -452,7 +422,7 @@ export default function AdminImport() {
         setFile(null); setYear(String(CURRENT_YEAR)); setVariant('A')
         setStage('idle'); setStatusMsg(''); setLatex(''); setTab('edit')
         setError(''); setSavedStats(null)
-        setPageDataUrls([]); setPageDims([]); setFigureAssignments({})
+        setParsed(null); setImages([])
         setPastedLatex('')
         setManualQuestions([emptyQuestion(1)]); setManualError('')
     }
@@ -464,11 +434,9 @@ export default function AdminImport() {
         setStage('processing')
         setError('')
         try {
-            setStatusMsg('Extracting text and rendering pages…')
-            const { text, pageDataUrls: pages, pageDims: dims } = await extractPdfData(file)
+            setStatusMsg('Extracting text…')
+            const text = await extractPdfText(file)
             if (!text) throw new Error('No text found in PDF.')
-            setPageDataUrls(pages)
-            setPageDims(dims)
 
             setStatusMsg('Converting to LaTeX via Claude…')
             const res  = await fetch('/api/pdf-to-latex', {
@@ -480,7 +448,6 @@ export default function AdminImport() {
             if (!res.ok) throw new Error(data.error || 'Conversion failed.')
 
             setLatex(data.latex)
-            setFigureAssignments(parseFigureAnnotations(data.latex))
             setStage('reviewing')
         } catch (err) {
             setError(err.message)
@@ -488,44 +455,62 @@ export default function AdminImport() {
         }
     }
 
-    // ── Step 2: save reviewed LaTeX ───────────────────────────────────────────
+    // ── Step 2: review → parse questions → go to image stage ──────────────────
+
+    function handleContinue() {
+        setError('')
+        try {
+            setParsed(parseReviewedLatex(latex))
+            setStage('images')
+        } catch (err) {
+            setError(err.message)
+        }
+    }
+
+    // ── Image stage helpers ───────────────────────────────────────────────────
+
+    async function addImages(fileList) {
+        const files = Array.from(fileList).filter(f => f.type.startsWith('image/'))
+        for (const file of files) {
+            const dataUrl = await fileToDataUrl(file)
+            setImages(prev => [...prev, {
+                uid:    `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+                name:   file.name,
+                dataUrl,
+                target: '', // "q:<id>" for MC, "s:<id>" for second problems
+            }])
+        }
+    }
+
+    function updateImage(uid, patch) {
+        setImages(prev => prev.map(img => img.uid === uid ? { ...img, ...patch } : img))
+    }
+
+    function removeImage(uid) {
+        setImages(prev => prev.filter(img => img.uid !== uid))
+    }
+
+    // ── Step 3: upload images + save to DB ────────────────────────────────────
 
     async function handleSave() {
         setStage('saving')
         setError('')
         try {
-            const plain     = latexToPlainText(latex)
-            let   questions = parseQuestions(plain)
+            const questions      = parsed.questions.map(q => ({ ...q }))
+            const secondProblems = parsed.secondProblems.map(p => ({ ...p }))
 
-            if (questions.length === 0) questions = parseQuestions(latex)
-
-            if (questions.length === 0) throw new Error(
-                'No questions found. Make sure each question starts with a number: ' +
-                '"1." on its own line, or "1. question text". ' +
-                'Options should use "A) …" / "А) …" or \\item.'
-            )
-
-            const answerKey = parseAnswerKey(plain)
-            questions.forEach(q => { q.answer = answerKey[q.id] || '' })
-
-            // Crop + upload figure images and assign img field to questions
-            if (Object.keys(figureAssignments).length > 0 && pageDataUrls.length > 0) {
-                setStatusMsg('Uploading question images…')
-                for (const [qId, { pageIdx, y1, y2, x1 = 0, x2 = 1 }] of Object.entries(figureAssignments)) {
-                    if (pageIdx < 0 || pageIdx >= pageDataUrls.length) continue
-                    try {
-                        const cropped = await cropImage(pageDataUrls[pageIdx], y1, y2, x1, x2)
-                        const url = await uploadPageImage(cropped, `${year}-${variant}/q${qId}.png`)
-                        const q = questions.find(q => q.id === qId)
-                        if (q) q.img = url
-                    } catch {
-                        // Storage not set up or upload failed — skip silently
-                    }
+            // Upload assigned images and attach the public URL to its problem
+            const assigned = images.filter(img => img.target)
+            if (assigned.length > 0) {
+                setStatusMsg('Uploading images…')
+                for (const img of assigned) {
+                    const [kind, id] = img.target.split(':')
+                    const target = (kind === 's' ? secondProblems : questions).find(x => x.id === id)
+                    if (!target) continue
+                    const path = `${year}-${variant}/${kind}${id}.png`
+                    target.img = await uploadImage(img.dataUrl, path)
                 }
             }
-
-            // Parse задгай даалгавар (section 2)
-            const secondProblems = parseSecondSection(latex)
 
             const { error: dbErr } = await supabase
                 .from('exams')
@@ -544,7 +529,7 @@ export default function AdminImport() {
             setStage('saved')
         } catch (err) {
             setError(err.message)
-            setStage('reviewing')
+            setStage('images')
         }
     }
 
@@ -574,18 +559,99 @@ export default function AdminImport() {
         )
     }
 
-    // ── Review stage ──────────────────────────────────────────────────────────
+    // ── Image-assignment stage ────────────────────────────────────────────────
 
-    if (stage === 'reviewing' || stage === 'saving') {
+    if (stage === 'images' || stage === 'saving') {
         const isSaving = stage === 'saving'
+        // Build the assignable-problem options once
+        const options = [
+            ...parsed.questions.map(q => ({ value: `q:${q.id}`, label: `Бодлого ${q.id}` })),
+            ...parsed.secondProblems.map(p => ({ value: `s:${p.id}`, label: `Задгай ${p.id}` })),
+        ]
+
         return (
             <div className="px-8 py-8 max-w-4xl">
                 <div className="flex items-center justify-between mb-6">
                     <div>
-                        <h1 className="text-2xl font-extrabold text-gray-900">Review Before Saving</h1>
-                        <p className="text-sm text-muted-foreground mt-1">{year} он — {variant} хувилбар · Edit if needed, then save.</p>
+                        <h1 className="text-2xl font-extrabold text-gray-900">Add Question Images</h1>
+                        <p className="text-sm text-muted-foreground mt-1">
+                            {year} он — {variant} хувилбар · Upload pictures and assign each to a problem. Optional — skip if none.
+                        </p>
                     </div>
-                    <Button variant="outline" onClick={() => setStage('idle')} disabled={isSaving} className="text-sm">
+                    <Button variant="outline" onClick={() => setStage('reviewing')} disabled={isSaving} className="text-sm">
+                        ← Back
+                    </Button>
+                </div>
+
+                {error && (
+                    <div className="mb-4 flex items-start gap-2 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+                        <AlertCircle size={15} className="flex-shrink-0 mt-0.5" />
+                        <span>{error}</span>
+                    </div>
+                )}
+
+                {/* Image dropzone */}
+                <ImageDropZone onFiles={addImages} disabled={isSaving} />
+
+                {/* Uploaded images grid */}
+                {images.length > 0 && (
+                    <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {images.map(img => (
+                            <div key={img.uid} className="border border-gray-200 rounded-xl bg-white p-3 shadow-sm flex flex-col gap-2">
+                                <div className="relative">
+                                    <img src={img.dataUrl} alt={img.name}
+                                        className="w-full h-40 object-contain rounded-lg bg-gray-50 border border-gray-100" />
+                                    <button
+                                        onClick={() => removeImage(img.uid)}
+                                        disabled={isSaving}
+                                        title="Remove"
+                                        className="absolute top-1.5 right-1.5 bg-white/90 hover:bg-red-50 text-gray-500 hover:text-red-500 rounded-full p-1 shadow disabled:opacity-50 transition-colors"
+                                    >
+                                        <X size={14} />
+                                    </button>
+                                </div>
+                                <p className="text-[11px] text-gray-400 truncate" title={img.name}>{img.name}</p>
+                                <select
+                                    value={img.target}
+                                    onChange={e => updateImage(img.uid, { target: e.target.value })}
+                                    disabled={isSaving}
+                                    className={`text-sm border rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#E75234] disabled:opacity-50 ${img.target ? 'border-green-300 bg-green-50' : 'border-gray-200'}`}
+                                >
+                                    <option value="">— assign to problem —</option>
+                                    {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                                </select>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* Save bar */}
+                <div className="mt-8 flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground">
+                        {images.filter(i => i.target).length} of {images.length} image{images.length !== 1 ? 's' : ''} assigned
+                    </p>
+                    <Button onClick={handleSave} disabled={isSaving}
+                        className="bg-[#E75234] hover:bg-[#c94220] text-white px-6">
+                        {isSaving
+                            ? <><Loader2 size={15} className="animate-spin mr-2" />{statusMsg || 'Saving…'}</>
+                            : 'Save to Site'}
+                    </Button>
+                </div>
+            </div>
+        )
+    }
+
+    // ── Review stage ──────────────────────────────────────────────────────────
+
+    if (stage === 'reviewing') {
+        return (
+            <div className="px-8 py-8 max-w-4xl">
+                <div className="flex items-center justify-between mb-6">
+                    <div>
+                        <h1 className="text-2xl font-extrabold text-gray-900">Review Before Continuing</h1>
+                        <p className="text-sm text-muted-foreground mt-1">{year} он — {variant} хувилбар · Edit if needed, then continue to images.</p>
+                    </div>
+                    <Button variant="outline" onClick={() => setStage('idle')} className="text-sm">
                         ← Back
                     </Button>
                 </div>
@@ -601,186 +667,23 @@ export default function AdminImport() {
                 <div className="flex items-center justify-between mb-3">
                     <div className="flex rounded-xl overflow-hidden border border-gray-200 text-xs font-semibold">
                         {['edit', 'preview'].map(t => (
-                            <button key={t} onClick={() => setTab(t)} disabled={isSaving}
+                            <button key={t} onClick={() => setTab(t)}
                                 className={`px-4 py-1.5 transition-colors ${tab === t ? 'bg-[#E75234] text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}>
                                 {t === 'edit' ? 'Edit LaTeX' : 'Preview'}
                             </button>
                         ))}
                     </div>
-                    <Button onClick={handleSave} disabled={isSaving}
+                    <Button onClick={handleContinue}
                         className="bg-[#E75234] hover:bg-[#c94220] text-white px-6">
-                        {isSaving
-                            ? <><Loader2 size={15} className="animate-spin mr-2" />{statusMsg || 'Saving…'}</>
-                            : 'Save to Site'}
+                        Continue →
                     </Button>
                 </div>
-
-                {/* ── Figure crop panel ── */}
-                {Object.keys(figureAssignments).length > 0 && pageDataUrls.length > 0 && (
-                    <div className="mb-4 border border-blue-100 rounded-xl bg-blue-50 p-4">
-                        <p className="text-xs font-bold text-[#2760A6] mb-3">
-                            Question Images — {Object.keys(figureAssignments).length} detected
-                            <span className="ml-2 font-normal text-blue-400">Drag sliders to crop each figure</span>
-                        </p>
-                        <div className="flex flex-col gap-3">
-                            {Object.entries(figureAssignments)
-                                .sort((a, b) => parseFloat(a[0]) - parseFloat(b[0]))
-                                .map(([qId, { pageIdx, y1, y2, x1 = 0, x2 = 1 }]) => {
-                                    const dim = pageDims[pageIdx] || { w: 892, h: 1263 }
-                                    const aspect = dim.w / dim.h
-                                    // Thumbnail: show only the cropped area at fixed width
-                                    const thumbW = 120
-                                    const imgWThumb = thumbW / (x2 - x1)
-                                    const imgHThumb = imgWThumb / aspect
-                                    const cropHThumb = Math.max(30, Math.round(imgHThumb * (y2 - y1)))
-                                    const setFA = patch => setFigureAssignments(prev => ({
-                                        ...prev, [qId]: { ...prev[qId], ...patch }
-                                    }))
-                                    return (
-                                        <div key={qId} className="flex items-start gap-4 bg-white rounded-xl border border-blue-100 p-3 shadow-sm">
-                                            {/* Cropped-area thumbnail */}
-                                            <div className="shrink-0 flex flex-col items-center gap-1">
-                                                {/* Editable question ID — change if AI assigned to wrong question */}
-                                                <div className="flex items-center gap-0.5">
-                                                    <span className="text-xs font-bold text-[#E75234]">Q</span>
-                                                    <input
-                                                        type="text"
-                                                        defaultValue={qId}
-                                                        title="Change question number"
-                                                        disabled={isSaving}
-                                                        onBlur={e => {
-                                                            const newId = e.target.value.trim()
-                                                            if (!newId || newId === qId) return
-                                                            setFigureAssignments(prev => {
-                                                                const n = { ...prev }
-                                                                n[newId] = n[qId]
-                                                                delete n[qId]
-                                                                return n
-                                                            })
-                                                        }}
-                                                        onKeyDown={e => e.key === 'Enter' && e.currentTarget.blur()}
-                                                        className="w-10 text-xs font-bold text-[#E75234] border border-[#E75234]/40 rounded px-1 py-0.5 text-center focus:outline-none focus:border-[#E75234] bg-transparent disabled:opacity-50"
-                                                    />
-                                                </div>
-                                                <div
-                                                    onClick={() => setLightbox({ qId })}
-                                                    title="Click to enlarge"
-                                                    style={{
-                                                        width: thumbW, height: cropHThumb,
-                                                        position: 'relative', overflow: 'hidden',
-                                                        borderRadius: 4, border: '2px solid #E75234',
-                                                        cursor: 'zoom-in', flexShrink: 0,
-                                                    }}
-                                                >
-                                                    <img src={pageDataUrls[pageIdx]} alt=""
-                                                        style={{
-                                                            position: 'absolute',
-                                                            width: Math.round(imgWThumb),
-                                                            height: Math.round(imgHThumb),
-                                                            left: -Math.round(imgWThumb * x1),
-                                                            top: -Math.round(imgHThumb * y1),
-                                                            display: 'block',
-                                                        }}
-                                                    />
-                                                </div>
-                                                <span className="text-[10px] text-gray-400">click to enlarge</span>
-                                            </div>
-                                            {/* Crop controls */}
-                                            <div className="flex-1 flex flex-col gap-1.5 min-w-0">
-                                                {/* Top */}
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-xs text-gray-500 w-16 shrink-0">Top {Math.round(y1*100)}%</span>
-                                                    <input type="range" min={0} max={95} step={1} value={Math.round(y1*100)} disabled={isSaving}
-                                                        onChange={e => { const v=parseInt(e.target.value)/100; setFA({ y1: v, y2: Math.max(v+0.05, y2) }) }}
-                                                        className="flex-1 accent-[#2760A6]" />
-                                                </div>
-                                                {/* Bot */}
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-xs text-gray-500 w-16 shrink-0">Bot {Math.round(y2*100)}%</span>
-                                                    <input type="range" min={5} max={100} step={1} value={Math.round(y2*100)} disabled={isSaving}
-                                                        onChange={e => { const v=parseInt(e.target.value)/100; setFA({ y2: v, y1: Math.min(y1, v-0.05) }) }}
-                                                        className="flex-1 accent-[#2760A6]" />
-                                                </div>
-                                                <div className="border-t border-gray-100 my-0.5" />
-                                                {/* Left */}
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-xs text-[#E75234] font-semibold w-16 shrink-0">← Left {Math.round(x1*100)}%</span>
-                                                    <input type="range" min={0} max={95} step={1} value={Math.round(x1*100)} disabled={isSaving}
-                                                        onChange={e => { const v=parseInt(e.target.value)/100; setFA({ x1: v, x2: Math.max(v+0.05, x2) }) }}
-                                                        className="flex-1 accent-[#E75234]" />
-                                                </div>
-                                                {/* Right */}
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-xs text-[#E75234] font-semibold w-16 shrink-0">Right {Math.round(x2*100)}% →</span>
-                                                    <input type="range" min={5} max={100} step={1} value={Math.round(x2*100)} disabled={isSaving}
-                                                        onChange={e => { const v=parseInt(e.target.value)/100; setFA({ x2: v, x1: Math.min(x1, v-0.05) }) }}
-                                                        className="flex-1 accent-[#E75234]" />
-                                                </div>
-                                                <select
-                                                    value={pageIdx}
-                                                    onChange={e => setFA({ pageIdx: parseInt(e.target.value) })}
-                                                    disabled={isSaving}
-                                                    className="text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-[#E75234] w-28"
-                                                >
-                                                    {pageDataUrls.map((_, i) => (
-                                                        <option key={i} value={i}>Page {i + 1}</option>
-                                                    ))}
-                                                </select>
-                                                <button
-                                                    onClick={() => setFigureAssignments(prev => { const n={...prev}; delete n[qId]; return n })}
-                                                    disabled={isSaving}
-                                                    className="text-xs text-gray-400 hover:text-red-400 transition-colors w-fit"
-                                                >remove</button>
-                                            </div>
-                                        </div>
-                                    )
-                                })}
-                        </div>
-                    </div>
-                )}
-
-                {/* Lightbox rendered via portal so it escapes overflow containers */}
-                {lightbox && figureAssignments[lightbox.qId] && createPortal((() => {
-                    const { qId } = lightbox
-                    const { pageIdx, y1, y2, x1 = 0, x2 = 1 } = figureAssignments[qId]
-                    const dim = pageDims[pageIdx] || { w: 892, h: 1263 }
-                    const aspect = dim.w / dim.h
-                    const lbW = 500
-                    const imgW = lbW / (x2 - x1)
-                    const imgH = imgW / aspect
-                    const cropH = Math.round(imgH * (y2 - y1))
-                    return (
-                        <div
-                            style={{ position:'fixed', inset:0, zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(0,0,0,0.72)' }}
-                            onClick={() => setLightbox(null)}
-                        >
-                            <div
-                                style={{ background:'#fff', borderRadius:16, padding:16, display:'flex', flexDirection:'column', gap:12, boxShadow:'0 25px 60px rgba(0,0,0,0.4)', maxWidth:'95vw' }}
-                                onClick={e => e.stopPropagation()}
-                            >
-                                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-                                    <span style={{ fontSize:14, fontWeight:700, color:'#E75234' }}>Q{qId} — Figure</span>
-                                    <button onClick={() => setLightbox(null)} style={{ background:'none', border:'none', cursor:'pointer', fontSize:20, color:'#9ca3af', lineHeight:1 }}>✕</button>
-                                </div>
-                                <div style={{ width:lbW, height:Math.max(40, cropH), overflow:'hidden', borderRadius:8, border:'1px solid #e5e7eb', position:'relative' }}>
-                                    <img
-                                        src={pageDataUrls[pageIdx]}
-                                        alt=""
-                                        style={{ position:'absolute', width:Math.round(imgW), height:Math.round(imgH), left:-Math.round(imgW*x1), top:-Math.round(imgH*y1) }}
-                                    />
-                                </div>
-                                <p style={{ fontSize:11, color:'#9ca3af', textAlign:'center', margin:0 }}>Click outside or press Esc to close</p>
-                            </div>
-                        </div>
-                    )
-                })(), document.body)}
 
                 {tab === 'edit' && (
                     <textarea
                         className="w-full h-[65vh] font-mono text-xs bg-gray-950 text-green-300 rounded-2xl p-5 resize-none focus:outline-none focus:ring-2 focus:ring-[#E75234]"
                         value={latex}
                         onChange={e => setLatex(e.target.value)}
-                        disabled={isSaving}
                         spellCheck={false}
                     />
                 )}
@@ -892,7 +795,7 @@ export default function AdminImport() {
                         disabled={!pastedLatex.trim()}
                         className="w-full h-12 text-base font-bold bg-[#E75234] hover:bg-[#c94220] text-white disabled:opacity-50"
                     >
-                        Review &amp; Save
+                        Review &amp; Continue
                     </Button>
                 </>
             )}
@@ -1017,6 +920,31 @@ export default function AdminImport() {
                     </Button>
                 </>
             )}
+        </div>
+    )
+}
+
+// ── Image drop zone (multiple) ────────────────────────────────────────────────
+
+function ImageDropZone({ onFiles, disabled }) {
+    const [dragging, setDragging] = useState(false)
+    const ref = useRef(null)
+
+    return (
+        <div
+            onDragOver={e  => { e.preventDefault(); !disabled && setDragging(true) }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={e  => { e.preventDefault(); setDragging(false); !disabled && e.dataTransfer.files.length && onFiles(e.dataTransfer.files) }}
+            onClick={() => !disabled && ref.current?.click()}
+            className={`border-2 border-dashed rounded-xl p-8 flex flex-col items-center gap-2 transition-colors select-none ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${
+                dragging ? 'border-blue-400 bg-blue-50' : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+            }`}
+        >
+            <ImageIcon size={32} className="text-gray-400" />
+            <p className="font-semibold text-gray-700">Click to upload images</p>
+            <p className="text-xs text-muted-foreground">or drag and drop · PNG, JPG · multiple allowed</p>
+            <input ref={ref} type="file" accept="image/*" multiple className="hidden"
+                onChange={e => { if (e.target.files.length) onFiles(e.target.files); e.target.value = '' }} />
         </div>
     )
 }
