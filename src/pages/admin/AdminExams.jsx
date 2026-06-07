@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { Trash2, RefreshCw, Pencil, Save, X, PlusCircle } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Trash2, RefreshCw, Pencil, Save, X, PlusCircle, Upload, Loader2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -9,9 +9,78 @@ import { Badge } from '@/components/ui/badge'
 
 const ANSWER_OPTIONS = ['', 'A', 'B', 'C', 'D', 'E']
 
+// Upload an image File to Supabase Storage and return its public URL
+async function uploadImageFile(file, pathPrefix) {
+    const ext  = file.name.split('.').pop()?.toLowerCase() || 'png'
+    const path = `${pathPrefix}-${Date.now()}.${ext}`
+    const { error } = await supabase.storage
+        .from('exam-images')
+        .upload(path, file, { contentType: file.type || 'image/png', upsert: true })
+    if (error) throw new Error(error.message)
+    return supabase.storage.from('exam-images').getPublicUrl(path).data.publicUrl
+}
+
+// ── Reusable image field: upload a file or paste a URL, with preview ──────────
+
+function ImageField({ value, onChange, pathPrefix }) {
+    const ref = useRef(null)
+    const [busy, setBusy] = useState(false)
+    const [err,  setErr]  = useState('')
+
+    async function handlePick(file) {
+        if (!file) return
+        setBusy(true); setErr('')
+        try {
+            onChange(await uploadImageFile(file, pathPrefix))
+        } catch (e) {
+            setErr(e.message)
+        } finally {
+            setBusy(false)
+            if (ref.current) ref.current.value = ''
+        }
+    }
+
+    return (
+        <div className="flex flex-col gap-2 border-t border-gray-100 pt-3">
+            <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-400 shrink-0 w-7">img</span>
+                <input
+                    type="text"
+                    value={value || ''}
+                    onChange={e => onChange(e.target.value)}
+                    placeholder="Image URL — or upload a file →"
+                    className="flex-1 h-7 rounded-lg border border-gray-200 px-2 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-[#E75234] text-gray-500"
+                />
+                <button
+                    type="button"
+                    onClick={() => ref.current?.click()}
+                    disabled={busy}
+                    className="flex items-center gap-1 text-xs font-semibold text-[#2760A6] hover:text-[#1a4a80] border border-blue-200 rounded-lg px-2 py-1 shrink-0 disabled:opacity-50 transition-colors"
+                >
+                    {busy ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
+                    {busy ? 'Uploading…' : 'Upload'}
+                </button>
+                {value && (
+                    <button type="button" onClick={() => onChange('')}
+                        title="Remove image"
+                        className="text-gray-300 hover:text-red-400 shrink-0 transition-colors">
+                        <X size={14} />
+                    </button>
+                )}
+                <input ref={ref} type="file" accept="image/*" className="hidden"
+                    onChange={e => handlePick(e.target.files[0])} />
+            </div>
+            {err && <p className="text-xs text-red-500 pl-9">{err}</p>}
+            {value && (
+                <img src={value} alt="" className="max-h-32 rounded-lg border border-gray-100 object-contain bg-gray-50 self-start" />
+            )}
+        </div>
+    )
+}
+
 // ── Question editor ───────────────────────────────────────────────────────────
 
-function QuestionEditor({ question, onChange, onRemove }) {
+function QuestionEditor({ question, onChange, onRemove, pathPrefix }) {
     const q    = question
     const set  = (field, val) => onChange({ ...q, [field]: val })
     const type = q.type || 'mc'
@@ -102,21 +171,8 @@ function QuestionEditor({ question, onChange, onRemove }) {
                 </div>
             )}
 
-            {/* Image URL */}
-            <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-400 shrink-0 w-7">img</span>
-                <input
-                    type="text"
-                    value={q.img || ''}
-                    onChange={e => set('img', e.target.value)}
-                    placeholder="Image URL (leave blank for none)"
-                    className="flex-1 h-7 rounded-lg border border-gray-200 px-2 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-[#E75234] text-gray-500"
-                />
-                {q.img && (
-                    <a href={q.img} target="_blank" rel="noopener noreferrer"
-                        className="text-xs text-[#2760A6] hover:underline shrink-0">view</a>
-                )}
-            </div>
+            {/* Image — upload a file or paste a URL */}
+            <ImageField value={q.img} onChange={url => set('img', url)} pathPrefix={`${pathPrefix}q${q.id}`} />
         </div>
     )
 }
@@ -125,7 +181,7 @@ function QuestionEditor({ question, onChange, onRemove }) {
 
 const ANSWER_SLOTS = ['a','b','c','d','e','f']
 
-function SecondProblemEditor({ question, onChange, onRemove }) {
+function SecondProblemEditor({ question, onChange, onRemove, pathPrefix }) {
     const q = question
     const set = (field, val) => onChange({ ...q, [field]: val })
     const usedSlots = ANSWER_SLOTS.filter(s => s in q)
@@ -181,6 +237,8 @@ function SecondProblemEditor({ question, onChange, onRemove }) {
                     >+ slot</button>
                 )}
             </div>
+            {/* Image — upload a file or paste a URL */}
+            <ImageField value={q.img} onChange={url => set('img', url)} pathPrefix={`${pathPrefix}s${q.id}`} />
         </div>
     )
 }
@@ -230,7 +288,8 @@ function EditView({ exam, onBack }) {
         setSaved(true)
     }
 
-    const missing = questions.filter(q => !q.answer).length
+    const missing    = questions.filter(q => !q.answer).length
+    const pathPrefix = `${exam.year}-${exam.variant}/`
 
     return (
         <div className="px-8 py-8 max-w-3xl">
@@ -287,7 +346,8 @@ function EditView({ exam, onBack }) {
                         {questions.map((q, i) => (
                             <QuestionEditor key={q.id} question={q}
                                 onChange={u => updateQuestion(i, u)}
-                                onRemove={() => removeQuestion(i)} />
+                                onRemove={() => removeQuestion(i)}
+                                pathPrefix={pathPrefix} />
                         ))}
                     </div>
                     <button
@@ -311,6 +371,7 @@ function EditView({ exam, onBack }) {
                             <SecondProblemEditor
                                 key={q.id}
                                 question={q}
+                                pathPrefix={pathPrefix}
                                 onChange={u => { setSecondProbs(prev => prev.map((p, j) => j === i ? u : p)); setSaved(false) }}
                                 onRemove={() => { setSecondProbs(prev => prev.filter((_, j) => j !== i)); setSaved(false) }}
                             />
