@@ -104,9 +104,12 @@ export default async function handler(req, res) {
 
     try {
         const client = getClient()
+        // 32K gives adaptive thinking room to reason AND still emit a full exam's
+        // worth of LaTeX. 10K could be entirely consumed by thinking on a long PDF,
+        // leaving no text block (which looked like "no response").
         const stream = client.messages.stream({
             model:      'claude-opus-4-8',
-            max_tokens: 10000,
+            max_tokens: 32000,
             thinking:   { type: 'adaptive' },
             // Cache the system prompt — 90% cheaper on repeated calls
             system: [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
@@ -119,11 +122,32 @@ export default async function handler(req, res) {
         const message = await stream.finalMessage()
         const latex = message.content.find(b => b.type === 'text')?.text
 
-        if (!latex) return res.status(500).json({ error: 'Empty response from Claude.' })
+        if (!latex) {
+            // No text block — tell the caller *why* instead of a blank 500
+            if (message.stop_reason === 'max_tokens')
+                return res.status(500).json({
+                    error: 'Claude hit the token limit before finishing. The PDF may be too large — try splitting it.',
+                })
+            if (message.stop_reason === 'refusal')
+                return res.status(500).json({ error: 'Claude declined to process this content.' })
+            return res.status(500).json({ error: `Empty response from Claude (stop_reason: ${message.stop_reason}).` })
+        }
 
         return res.status(200).json({ latex })
     } catch (err) {
-        return res.status(500).json({ error: err.message })
+        // Surface the real cause — these are the things that "suddenly" break a working integration
+        console.error('pdf-to-latex error:', err.status, err.name, err.message)
+
+        if (err instanceof Anthropic.AuthenticationError)
+            return res.status(401).json({ error: 'Anthropic API key is invalid or revoked. Check CLAUDE_API_KEY in Vercel env settings.' })
+        if (err instanceof Anthropic.PermissionDeniedError)
+            return res.status(403).json({ error: `Anthropic rejected the request (${err.type || 'permission_error'}). This is often a billing/credit problem — check your balance and spend limits in the Anthropic Console.` })
+        if (err instanceof Anthropic.RateLimitError)
+            return res.status(429).json({ error: 'Rate limited by Anthropic. Wait a moment and retry — low usage tiers have tight Opus limits.' })
+        if (err instanceof Anthropic.BadRequestError)
+            return res.status(400).json({ error: `Anthropic rejected the request: ${err.message}` })
+
+        return res.status(500).json({ error: err.message || 'Conversion failed.' })
     }
 }
 
