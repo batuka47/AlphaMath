@@ -72,6 +72,14 @@ function SecondSectionQuestion({ problem, answers, onAnswerChange }) {
                     {renderWithInputs(problem.problem)}
                 </div>
             )}
+            {problem.img && (
+                <img
+                    src={problem.img}
+                    alt=""
+                    className="max-w-xl w-full h-auto object-contain rounded-lg border border-gray-200 cursor-zoom-in my-4"
+                    onClick={() => window.open(problem.img, '_blank')}
+                />
+            )}
             {/* Summary of all answer slots at the bottom */}
             {slots.length > 0 && (
                 <div className="flex flex-row flex-wrap gap-3 mt-5">
@@ -101,6 +109,7 @@ SecondSectionQuestion.propTypes = {
         id:      PropTypes.string.isRequired,
         text:    PropTypes.string,
         problem: PropTypes.string,
+        img:     PropTypes.string,
     }).isRequired,
     answers:        PropTypes.object,
     onAnswerChange: PropTypes.func.isRequired,
