@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { getSlots, withSlots } from '@/lib/secondProblem'
 
 const ANSWER_OPTIONS = ['', 'A', 'B', 'C', 'D', 'E']
 
@@ -179,22 +180,29 @@ function QuestionEditor({ question, onChange, onRemove, pathPrefix }) {
 
 // ── Edit view ─────────────────────────────────────────────────────────────────
 
-const ANSWER_SLOTS = ['a','b','c','d','e','f']
+function nextSlotName(slots) {
+    const used = new Set(slots.map(s => s.name))
+    for (const l of 'abcdefghijklmnopqrstuvwxyz') {
+        if (!used.has(l)) return l
+    }
+    let n = 1
+    while (used.has(`a${n}`)) n++
+    return `a${n}`
+}
 
 function SecondProblemEditor({ question, onChange, onRemove, pathPrefix }) {
     const q = question
     const set = (field, val) => onChange({ ...q, [field]: val })
-    const usedSlots = ANSWER_SLOTS.filter(s => s in q)
+    const slots = getSlots(q)
 
-    const addSlot = () => {
-        const next = ANSWER_SLOTS.find(s => !(s in q))
-        if (next) onChange({ ...q, [next]: '' })
-    }
-    const removeSlot = (s) => {
-        const copy = { ...q }
-        delete copy[s]
-        onChange(copy)
-    }
+    const setSlots = (next) => onChange(withSlots(q, next))
+    const addSlot = () => setSlots([...slots, { name: nextSlotName(slots), value: '' }])
+    const renameSlot = (i, name) => setSlots(slots.map((s, j) => j === i ? { ...s, name } : s))
+    const setSlotValue = (i, value) => setSlots(slots.map((s, j) => j === i ? { ...s, value } : s))
+    const removeSlot = (i) => setSlots(slots.filter((_, j) => j !== i))
+
+    const duplicate = (name, i) =>
+        name && slots.some((s, j) => j !== i && s.name === name)
 
     return (
         <div className="border border-gray-100 rounded-xl p-4 flex flex-col gap-3 bg-white">
@@ -213,29 +221,35 @@ function SecondProblemEditor({ question, onChange, onRemove, pathPrefix }) {
                 placeholder="Question text (may contain $LaTeX$ and [a], [b] blanks)"
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-[#2760A6]"
             />
-            <div className="flex flex-wrap gap-2">
-                {usedSlots.map(s => (
-                    <div key={s} className="flex items-center gap-1 border border-gray-200 rounded-lg px-2 py-1 bg-gray-50">
-                        <span className="text-xs font-bold text-gray-500 italic">[{s}] =</span>
+            <div className="flex flex-col gap-2">
+                {slots.map((s, i) => (
+                    <div key={i} className="flex items-center gap-1.5 border border-gray-200 rounded-lg px-2 py-1.5 bg-gray-50">
+                        <span className="text-xs text-gray-400 italic shrink-0">[</span>
                         <input
                             type="text"
-                            value={q[s] || ''}
-                            onChange={e => set(s, e.target.value)}
-                            placeholder="answer"
-                            className="w-20 h-6 text-xs border-none bg-transparent focus:outline-none font-mono"
+                            value={s.name}
+                            onChange={e => renameSlot(i, e.target.value.trim())}
+                            placeholder="name"
+                            className={`w-16 h-7 text-xs text-center rounded border bg-white font-mono font-bold focus:outline-none focus:ring-1 focus:ring-[#2760A6] ${duplicate(s.name, i) ? 'border-red-400 text-red-600' : 'border-gray-200 text-[#2760A6]'}`}
                         />
-                        <button onClick={() => removeSlot(s)} className="text-gray-300 hover:text-red-400">
-                            <X size={10} />
+                        <span className="text-xs text-gray-400 italic shrink-0">] =</span>
+                        <input
+                            type="text"
+                            value={s.value}
+                            onChange={e => setSlotValue(i, e.target.value)}
+                            placeholder="answer"
+                            className="flex-1 h-7 text-xs border border-gray-200 rounded bg-white px-2 focus:outline-none focus:ring-1 focus:ring-[#2760A6] font-mono"
+                        />
+                        <button onClick={() => removeSlot(i)} className="text-gray-300 hover:text-red-400 shrink-0">
+                            <X size={12} />
                         </button>
                     </div>
                 ))}
-                {usedSlots.length < ANSWER_SLOTS.length && (
-                    <button
-                        type="button"
-                        onClick={addSlot}
-                        className="text-xs text-[#2760A6] hover:text-[#1a4a80] font-medium border border-dashed border-blue-200 rounded-lg px-2 py-1"
-                    >+ slot</button>
-                )}
+                <button
+                    type="button"
+                    onClick={addSlot}
+                    className="self-start text-xs text-[#2760A6] hover:text-[#1a4a80] font-medium border border-dashed border-blue-200 rounded-lg px-2 py-1"
+                >+ Add answer</button>
             </div>
             {/* Image — upload a file or paste a URL */}
             <ImageField value={q.img} onChange={url => set('img', url)} pathPrefix={`${pathPrefix}s${q.id}`} />
@@ -273,7 +287,7 @@ function EditView({ exam, onBack }) {
     }
 
     function addSecondProb() {
-        setSecondProbs(prev => [...prev, { id: String(prev.length + 1), text: '', a: '' }])
+        setSecondProbs(prev => [...prev, { id: String(prev.length + 1), text: '', slots: [{ name: 'a', value: '' }] }])
         setSaved(false)
     }
 

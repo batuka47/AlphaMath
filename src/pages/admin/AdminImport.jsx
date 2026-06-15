@@ -104,10 +104,11 @@ function parseSecondSection(latex) {
 
 function finaliseSecondProblem(q) {
     const text = q.parts.join(' ').trim()
-    const slots = ['a','b','c','d','e','f'].filter(l => text.includes(`[${l}]`))
-    const obj = { id: q.id, text }
-    slots.forEach(l => { obj[l] = '' })
-    return obj
+    const names = []
+    for (const m of text.matchAll(/\[([a-zA-Z][a-zA-Z0-9]*)\]/g)) {
+        if (!names.includes(m[1])) names.push(m[1])
+    }
+    return { id: q.id, text, slots: names.map(name => ({ name, value: '' })) }
 }
 
 // Upload an image (data URL) to Supabase Storage, return its public URL

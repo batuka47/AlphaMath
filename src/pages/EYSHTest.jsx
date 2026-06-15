@@ -10,6 +10,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import { getDefaultScoring, getTotalPossibleScore } from '../lib/scoring'
 import { renderLatex } from '../lib/renderMath'
+import { getSlots, slotPlaceholderRegex } from '../lib/secondProblem'
 
 // ── Section structure by total question count ─────────────────────────────────
 function getSections(totalQ) {
@@ -29,28 +30,28 @@ function getSections(totalQ) {
 // Renders the open-ended (нөхөх тест) problems.
 // The `problem` string may contain [a], [b][c] etc. — these become input boxes.
 function SecondSectionQuestion({ problem, answers, onAnswerChange }) {
-    const slots = ['a','b','c','d','e','f','g','h'].filter(
-        l => problem[l] !== undefined
-    )
+    const slots = getSlots(problem)
+    const names = slots.map(s => s.name)
+    const placeholderRe = slotPlaceholderRegex(names)
 
-    // Replace [a], [b], [c] etc. in the problem text with input boxes
+    // Replace [a], [b], [name] etc. in the problem text with input boxes
     const renderWithInputs = (text) => {
         if (!text) return null
-        const parts = text.split(/(\[[a-h]\])/g)
+        if (!placeholderRe) return <span>{renderLatex(text)}</span>
+        const parts = text.split(placeholderRe)
         return parts.map((part, i) => {
-            const match = part.match(/^\[([a-h])\]$/)
-            if (match) {
-                const letter = match[1]
-                const key = `${problem.id}-${letter}`
+            const match = part.match(/^\[(.+)\]$/)
+            if (match && names.includes(match[1])) {
+                const name = match[1]
+                const key = `${problem.id}-${name}`
                 return (
                     <input
                         key={i}
                         type="text"
-                        maxLength={1}
-                        className="inline-block w-10 h-8 border-b-2 border-gray-600 text-center text-lg font-bold focus:border-blue-500 focus:outline-none bg-blue-50 rounded mx-0.5 align-middle"
+                        className="inline-block min-w-10 h-8 border-b-2 border-gray-600 text-center text-lg font-bold focus:border-blue-500 focus:outline-none bg-blue-50 rounded mx-0.5 align-middle px-1"
                         value={answers?.[key] || ''}
                         onChange={e => onAnswerChange(key, e.target.value)}
-                        placeholder={letter}
+                        placeholder={name}
                     />
                 )
             }
@@ -74,16 +75,15 @@ function SecondSectionQuestion({ problem, answers, onAnswerChange }) {
             {/* Summary of all answer slots at the bottom */}
             {slots.length > 0 && (
                 <div className="flex flex-row flex-wrap gap-3 mt-5">
-                    {slots.map(letter => {
-                        const key = `${problem.id}-${letter}`
+                    {slots.map(slot => {
+                        const key = `${problem.id}-${slot.name}`
                         return (
-                            <div key={letter} className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg px-3 py-1">
-                                <span className="font-bold text-base italic text-gray-600">{letter}</span>
+                            <div key={slot.name} className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg px-3 py-1">
+                                <span className="font-bold text-base italic text-gray-600">{slot.name}</span>
                                 <span className="text-gray-400">=</span>
                                 <input
                                     type="text"
-                                    maxLength={1}
-                                    className="w-10 h-8 border-b-2 border-gray-400 text-center text-lg font-bold focus:border-blue-500 focus:outline-none bg-transparent"
+                                    className="min-w-10 h-8 border-b-2 border-gray-400 text-center text-lg font-bold focus:border-blue-500 focus:outline-none bg-transparent px-1"
                                     value={answers?.[key] || ''}
                                     onChange={e => onAnswerChange(key, e.target.value)}
                                 />

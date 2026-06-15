@@ -5,6 +5,7 @@ import Footer from '../components/Footer'
 import { useTasks } from '../lib/TaskContext'
 import { supabase } from '../lib/supabase'
 import { getDefaultScoring, getPointsForQuestion, getGrade } from '../lib/scoring'
+import { getSlots } from '../lib/secondProblem'
 function Result() {
     const location = useLocation()
     const navigate = useNavigate()
@@ -98,13 +99,11 @@ function Result() {
     let sec2Earned    = 0
     let sec2Possible  = 0
 
-    const LETTERS = ['a','b','c','d','e','f','g','h']
-
     const sec2Rows = secondProb.map(prob => {
-        const slots       = LETTERS.filter(l => prob[l] !== undefined && prob[l] !== '')
-        const totalSlots  = slots.length
+        const slots = getSlots(prob).filter(s => s.name && s.value !== '')
+        const totalSlots = slots.length
         const correctSlots = slots.filter(
-            l => prob[l] && secondAnswers[`${prob.id}-${l}`] === String(prob[l])
+            s => secondAnswers[`${prob.id}-${s.name}`] === String(s.value)
         ).length
         const earned = totalSlots > 0
             ? Math.round((correctSlots / totalSlots) * sec2PtsEach)
@@ -231,11 +230,7 @@ function Result() {
                                 <thead>
                                     <tr className="bg-[#F5DAC6] font-bold">
                                         <th className="border border-gray-300 px-3 py-2">Бодлого</th>
-                                        {LETTERS.map(l => (
-                                            <th key={l} className="border border-gray-300 px-2 py-2 italic">
-                                                {l}
-                                            </th>
-                                        ))}
+                                        <th className="border border-gray-300 px-3 py-2">Хариултууд</th>
                                         <th className="border border-gray-300 px-3 py-2">Оноо</th>
                                         <th className="border border-gray-300 px-3 py-2">Дүн</th>
                                     </tr>
@@ -246,32 +241,27 @@ function Result() {
                                             <td className="border border-gray-300 px-3 py-2 font-bold">
                                                 {row.id}
                                             </td>
-                                            {LETTERS.map(l => {
-                                                const correct  = row.prob[l]
-                                                const user     = secondAnswers[`${row.id}-${l}`] || ''
-                                                const hasSlot  = row.slots.includes(l)
-                                                const isRight  = hasSlot && correct && user === String(correct)
-                                                const isWrong  = hasSlot && user && !isRight
-                                                return (
-                                                    <td key={l}
-                                                        className={`border border-gray-300 px-2 py-2 text-xs
-                                                            ${isRight ? 'bg-green-50' : isWrong ? 'bg-red-50' : ''}`}
-                                                    >
-                                                        {hasSlot ? (
-                                                            <div className="flex flex-col items-center gap-0.5">
-                                                                <span className={`font-bold ${isRight ? 'text-green-600' : isWrong ? 'text-red-500' : 'text-gray-400'}`}>
+                                            <td className="border border-gray-300 px-2 py-2 text-xs">
+                                                <div className="flex flex-row flex-wrap justify-center gap-2">
+                                                    {row.slots.map(slot => {
+                                                        const correct = slot.value
+                                                        const user    = secondAnswers[`${row.id}-${slot.name}`] || ''
+                                                        const isRight = user === String(correct)
+                                                        return (
+                                                            <div key={slot.name}
+                                                                className={`flex items-center gap-1 rounded px-2 py-0.5
+                                                                    ${isRight ? 'bg-green-50' : user ? 'bg-red-50' : 'bg-gray-50'}`}
+                                                            >
+                                                                <span className="italic text-gray-500">{slot.name}</span>
+                                                                <span className={`font-bold ${isRight ? 'text-green-600' : user ? 'text-red-500' : 'text-gray-400'}`}>
                                                                     {user || '–'}
                                                                 </span>
-                                                                <span className="text-gray-400 text-[10px]">
-                                                                    ({correct})
-                                                                </span>
+                                                                <span className="text-gray-400 text-[10px]">({correct})</span>
                                                             </div>
-                                                        ) : (
-                                                            <span className="text-gray-200">—</span>
-                                                        )}
-                                                    </td>
-                                                )
-                                            })}
+                                                        )
+                                                    })}
+                                                </div>
+                                            </td>
                                             <td className="border border-gray-300 px-3 py-2 text-gray-500">
                                                 {row.maxPts}
                                             </td>
