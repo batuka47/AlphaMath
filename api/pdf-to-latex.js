@@ -60,67 +60,73 @@ $a + b = 12$, $ab = 35$ бол $a^{2} + b^{2}$ утгыг ол.
 $x^{2} - 5x + 6 = 0$ тэгшитгэлийн шийдүүдийг ол.
 %%% ХАРИУЛТ a, b %%%`
 
-export default async function handler(req, res) {
+// Edge runtime: Vercel streams a Web `Response(ReadableStream)` to the browser
+// chunk-by-chunk, instead of buffering a Node `res.write()` body until the end.
+// This is what actually keeps the connection alive past the gateway's first-byte
+// timeout — the cause of the 504s.
+export const config = { runtime: 'edge' }
+
+function jsonError(message, status) {
+    return new Response(JSON.stringify({ error: message }), {
+        status,
+        headers: { 'Content-Type': 'application/json' },
+    })
+}
+
+export default async function handler(req) {
     if (req.method !== 'POST')
-        return res.status(405).json({ error: 'Method not allowed.' })
+        return jsonError('Method not allowed.', 405)
 
     const apiKey = process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_API_KEY
     if (!apiKey)
-        return res.status(503).json({ error: 'ANTHROPIC_API_KEY is not set in the deployment environment.' })
+        return jsonError('ANTHROPIC_API_KEY is not set in the deployment environment.', 503)
 
-    const text = req.body?.text
+    let body
+    try { body = await req.json() } catch { body = null }
+    const text = body?.text
     if (!text || !text.trim())
-        return res.status(400).json({ error: 'Missing "text" in request body.' })
+        return jsonError('Missing "text" in request body.', 400)
 
-    const client = new Anthropic({ apiKey })
+    const client  = new Anthropic({ apiKey })
+    const encoder = new TextEncoder()
 
-    // Stream the response to the browser as Claude generates it. The bytes flow
-    // immediately, so the platform gateway never times out waiting for the full
-    // (multi-minute) conversion — the cause of the earlier 504s. Errors that
-    // happen before the first byte are returned as JSON with a real status code;
-    // once streaming has started, a trailing %%%ERROR%%% sentinel carries the
-    // failure since headers (and the 200) are already sent.
-    try {
-        const stream = client.messages.stream({
-            model:         'claude-sonnet-4-6',
-            max_tokens:    32000,
-            thinking:      { type: 'adaptive' },
-            output_config: { effort: 'low' },
-            system:   [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
-            messages: [{ role: 'user', content: `Convert this Mongolian math exam PDF text to LaTeX:\n\n${text}` }],
-        })
+    // Once the stream starts, status is already 200 — failures (auth, billing,
+    // rate limit, refusal, max_tokens) are delivered as a trailing %%%ERROR%%%
+    // sentinel that the client splits out and surfaces.
+    const stream = new ReadableStream({
+        async start(controller) {
+            try {
+                const s = client.messages.stream({
+                    model:         'claude-sonnet-4-6',
+                    max_tokens:    32000,
+                    thinking:      { type: 'adaptive' },
+                    output_config: { effort: 'low' },
+                    system:   [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
+                    messages: [{ role: 'user', content: `Convert this Mongolian math exam PDF text to LaTeX:\n\n${text}` }],
+                })
 
-        res.setHeader('Content-Type', 'text/plain; charset=utf-8')
-        res.setHeader('Cache-Control', 'no-cache, no-transform')
+                for await (const event of s) {
+                    if (event.type === 'content_block_delta' && event.delta.type === 'text_delta')
+                        controller.enqueue(encoder.encode(event.delta.text))
+                }
 
-        stream.on('text', delta => res.write(delta))
+                const message = await s.finalMessage()
+                if (message.stop_reason === 'max_tokens')
+                    controller.enqueue(encoder.encode('\n\n%%%ERROR%%% The exam was too long to convert in one pass. Try splitting the PDF.'))
+                else if (message.stop_reason === 'refusal')
+                    controller.enqueue(encoder.encode('\n\n%%%ERROR%%% Claude declined to process this content.'))
+            } catch (err) {
+                controller.enqueue(encoder.encode(`\n\n%%%ERROR%%% ${err?.message || 'Conversion failed.'}`))
+            } finally {
+                controller.close()
+            }
+        },
+    })
 
-        const message = await stream.finalMessage()
-
-        if (message.stop_reason === 'max_tokens')
-            res.write('\n\n%%%ERROR%%% The exam was too long to convert in one pass. Try splitting the PDF.')
-        else if (message.stop_reason === 'refusal')
-            res.write('\n\n%%%ERROR%%% Claude declined to process this content.')
-
-        return res.end()
-    } catch (err) {
-        console.error('pdf-to-latex:', err.status, err.name, err.message)
-
-        if (res.headersSent) {
-            res.write(`\n\n%%%ERROR%%% ${err.message || 'Conversion failed.'}`)
-            return res.end()
-        }
-
-        // Map Anthropic's typed errors to clear, actionable messages.
-        if (err instanceof Anthropic.AuthenticationError)
-            return res.status(401).json({ error: 'Anthropic API key is invalid or revoked.' })
-        if (err instanceof Anthropic.PermissionDeniedError)
-            return res.status(403).json({ error: 'Anthropic rejected the request — usually a billing or credit issue. Check your balance in the Anthropic Console.' })
-        if (err instanceof Anthropic.RateLimitError)
-            return res.status(429).json({ error: 'Rate limited by Anthropic. Wait a moment and retry.' })
-        if (err instanceof Anthropic.BadRequestError)
-            return res.status(400).json({ error: `Anthropic rejected the request: ${err.message}` })
-
-        return res.status(500).json({ error: err.message || 'Conversion failed.' })
-    }
+    return new Response(stream, {
+        headers: {
+            'Content-Type':  'text/plain; charset=utf-8',
+            'Cache-Control': 'no-cache, no-transform',
+        },
+    })
 }

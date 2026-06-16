@@ -455,8 +455,9 @@ export default function AdminImport() {
                 body:    JSON.stringify({ text }),
             })
             if (!res.ok) {
-                let msg = 'Conversion failed.'
-                try { msg = (await res.json()).error || msg } catch { msg = (await res.text()) || msg }
+                const raw = await res.text()
+                let msg = raw || 'Conversion failed.'
+                try { msg = JSON.parse(raw).error || msg } catch { /* not JSON — use raw text */ }
                 throw new Error(msg)
             }
 
