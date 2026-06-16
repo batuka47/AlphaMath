@@ -88,12 +88,18 @@ function parseSecondSection(latex) {
     let current = null
     for (const raw of section2.split('\n')) {
         const line = raw.trim()
-        if (!line || line.match(/^\\(begin|end)\b/) || line.startsWith('%')) continue
+        if (!line || line.match(/^\\(begin|end)\b/)) continue
+        const ans = line.match(/^%%%\s*ХАРИУЛТ\s+(.+?)\s*%%%$/i)
+        if (ans && current) {
+            current.slotNames = ans[1].split(/[,\s]+/).map(s => s.trim()).filter(Boolean)
+            continue
+        }
+        if (line.startsWith('%')) continue
         // Match ids like 1, 2.1, 2.2, 2.3 etc.
         const sec = line.match(/^\\section\*?\{([\d.]+)[.)?\s]*\}/)
         if (sec) {
             if (current) problems.push(finaliseSecondProblem(current))
-            current = { id: sec[1], parts: [] }
+            current = { id: sec[1], parts: [], slotNames: null }
             continue
         }
         if (current) current.parts.push(line)
@@ -104,9 +110,12 @@ function parseSecondSection(latex) {
 
 function finaliseSecondProblem(q) {
     const text = q.parts.join(' ').trim()
-    const names = []
-    for (const m of text.matchAll(/\[([a-zA-Z][a-zA-Z0-9]*)\]/g)) {
-        if (!names.includes(m[1])) names.push(m[1])
+    let names = q.slotNames
+    if (!names || !names.length) {
+        names = []
+        for (const m of text.matchAll(/\[([a-zA-Z][a-zA-Z0-9]*)\]/g)) {
+            if (!names.includes(m[1])) names.push(m[1])
+        }
     }
     return { id: q.id, text, slots: names.map(name => ({ name, value: '' })) }
 }

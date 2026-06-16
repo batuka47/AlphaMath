@@ -25,7 +25,9 @@ SECTION 1 FORMAT (multiple choice):
 SECTION 2 FORMAT (after the marker):
 - Preserve the original numbering exactly (e.g. 2.1, 2.2, 2.3 → \\section*{2.1}, \\section*{2.2}, \\section*{2.3}).
 - Plain problem paragraphs — no \\begin{enumerate} or \\item.
-- For each fill-in-blank slot in the original (blank, box, underscore), write [a], [b], [c]… in order. Multiple sub-answers (e.g. find x and y) each get their own [a], [b].
+- NEVER place answer blanks inside the question text. Do not write [a], [b], underscores, boxes, or "Хариу:" inside the sentence. Keep the question text clean and complete.
+- After each question, on its OWN line, declare the answer slots the student must fill as: %%% ХАРИУЛТ a, b %%%
+  One slot per distinct answer the question asks for (find x and y → a, b; a single answer → a). Name them a, b, c… in order.
 
 ANSWER KEY (if present): output it as-is after everything, e.g. "1-А  2-Б  3-В …".
 
@@ -51,10 +53,12 @@ $\\log_{2} 8$ утгыг ол.
 %%% ЗАДГАЙ ДААЛГАВАР %%%
 
 \\section*{1.}
-$a + b = 12$, $ab = 35$ бол $a^{2} + b^{2}$ утгыг ол. Хариу: [a]
+$a + b = 12$, $ab = 35$ бол $a^{2} + b^{2}$ утгыг ол.
+%%% ХАРИУЛТ a %%%
 
 \\section*{2.}
-$x^{2} - 5x + 6 = 0$ тэгшитгэлийн шийдүүд $x_1 = $ [a] ба $x_2 = $ [b]`
+$x^{2} - 5x + 6 = 0$ тэгшитгэлийн шийдүүдийг ол.
+%%% ХАРИУЛТ a, b %%%`
 
 export default async function handler(req, res) {
     if (req.method !== 'POST')
