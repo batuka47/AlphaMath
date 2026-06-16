@@ -454,10 +454,26 @@ export default function AdminImport() {
                 headers: { 'Content-Type': 'application/json' },
                 body:    JSON.stringify({ text }),
             })
-            const data = await res.json()
-            if (!res.ok) throw new Error(data.error || 'Conversion failed.')
+            if (!res.ok) {
+                let msg = 'Conversion failed.'
+                try { msg = (await res.json()).error || msg } catch { msg = (await res.text()) || msg }
+                throw new Error(msg)
+            }
 
-            setLatex(data.latex)
+            const reader  = res.body.getReader()
+            const decoder = new TextDecoder()
+            let latexOut  = ''
+            for (;;) {
+                const { done, value } = await reader.read()
+                if (done) break
+                latexOut += decoder.decode(value, { stream: true })
+                setStatusMsg(`Converting to LaTeX via Claude… (${latexOut.length} тэмдэгт)`)
+            }
+
+            const errAt = latexOut.indexOf('%%%ERROR%%%')
+            if (errAt !== -1) throw new Error(latexOut.slice(errAt + 11).trim() || 'Conversion failed.')
+
+            setLatex(latexOut.trim())
             setStage('reviewing')
         } catch (err) {
             setError(err.message)

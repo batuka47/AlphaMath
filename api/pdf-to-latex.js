@@ -72,32 +72,44 @@ export default async function handler(req, res) {
     if (!text || !text.trim())
         return res.status(400).json({ error: 'Missing "text" in request body.' })
 
-    try {
-        const client = new Anthropic({ apiKey })
+    const client = new Anthropic({ apiKey })
 
-        // Sonnet 4.6 converts a full exam well within Vercel's function timeout;
-        // low effort because the transform is mechanical. 32K output covers the
-        // largest exams (Sonnet 4.6 caps at 64K). Streaming avoids HTTP timeouts.
-        const message = await client.messages.stream({
+    // Stream the response to the browser as Claude generates it. The bytes flow
+    // immediately, so the platform gateway never times out waiting for the full
+    // (multi-minute) conversion — the cause of the earlier 504s. Errors that
+    // happen before the first byte are returned as JSON with a real status code;
+    // once streaming has started, a trailing %%%ERROR%%% sentinel carries the
+    // failure since headers (and the 200) are already sent.
+    try {
+        const stream = client.messages.stream({
             model:         'claude-sonnet-4-6',
             max_tokens:    32000,
             thinking:      { type: 'adaptive' },
             output_config: { effort: 'low' },
             system:   [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
             messages: [{ role: 'user', content: `Convert this Mongolian math exam PDF text to LaTeX:\n\n${text}` }],
-        }).finalMessage()
+        })
 
-        const latex = message.content.find(b => b.type === 'text')?.text
-        if (latex) return res.status(200).json({ latex })
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8')
+        res.setHeader('Cache-Control', 'no-cache, no-transform')
 
-        // Got a response, but no usable text block — report the actual reason.
+        stream.on('text', delta => res.write(delta))
+
+        const message = await stream.finalMessage()
+
         if (message.stop_reason === 'max_tokens')
-            return res.status(502).json({ error: 'The exam was too long to convert in one pass. Try splitting the PDF.' })
-        if (message.stop_reason === 'refusal')
-            return res.status(502).json({ error: 'Claude declined to process this content.' })
-        return res.status(502).json({ error: `No text returned (stop_reason: ${message.stop_reason}).` })
+            res.write('\n\n%%%ERROR%%% The exam was too long to convert in one pass. Try splitting the PDF.')
+        else if (message.stop_reason === 'refusal')
+            res.write('\n\n%%%ERROR%%% Claude declined to process this content.')
+
+        return res.end()
     } catch (err) {
         console.error('pdf-to-latex:', err.status, err.name, err.message)
+
+        if (res.headersSent) {
+            res.write(`\n\n%%%ERROR%%% ${err.message || 'Conversion failed.'}`)
+            return res.end()
+        }
 
         // Map Anthropic's typed errors to clear, actionable messages.
         if (err instanceof Anthropic.AuthenticationError)
