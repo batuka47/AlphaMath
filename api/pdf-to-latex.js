@@ -60,73 +60,60 @@ $a + b = 12$, $ab = 35$ бол $a^{2} + b^{2}$ утгыг ол.
 $x^{2} - 5x + 6 = 0$ тэгшитгэлийн шийдүүдийг ол.
 %%% ХАРИУЛТ a, b %%%`
 
-// Edge runtime: Vercel streams a Web `Response(ReadableStream)` to the browser
-// chunk-by-chunk, instead of buffering a Node `res.write()` body until the end.
-// This is what actually keeps the connection alive past the gateway's first-byte
-// timeout — the cause of the 504s.
-export const config = { runtime: 'edge' }
+// Fluid Compute (Node.js) with res.write() streaming.
+// Default timeout is 300s on Vercel Fluid Compute — no 504s.
+export const config = { maxDuration: 300 }
 
-function jsonError(message, status) {
-    return new Response(JSON.stringify({ error: message }), {
-        status,
-        headers: { 'Content-Type': 'application/json' },
-    })
-}
-
-export default async function handler(req) {
-    if (req.method !== 'POST')
-        return jsonError('Method not allowed.', 405)
+export default async function handler(req, res) {
+    if (req.method !== 'POST') {
+        res.status(405).json({ error: 'Method not allowed.' })
+        return
+    }
 
     const apiKey = process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_API_KEY
-    if (!apiKey)
-        return jsonError('ANTHROPIC_API_KEY is not set in the deployment environment.', 503)
+    if (!apiKey) {
+        res.status(503).json({ error: 'ANTHROPIC_API_KEY is not set in the deployment environment.' })
+        return
+    }
 
-    let body
-    try { body = await req.json() } catch { body = null }
+    let body = req.body
+    if (typeof body === 'string') { try { body = JSON.parse(body) } catch { body = null } }
     const text = body?.text
-    if (!text || !text.trim())
-        return jsonError('Missing "text" in request body.', 400)
+    if (!text || !text.trim()) {
+        res.status(400).json({ error: 'Missing "text" in request body.' })
+        return
+    }
 
-    const client  = new Anthropic({ apiKey })
-    const encoder = new TextEncoder()
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8')
+    res.setHeader('Cache-Control', 'no-cache, no-transform')
+    res.setHeader('X-Accel-Buffering', 'no')
+    res.status(200)
 
-    // Once the stream starts, status is already 200 — failures (auth, billing,
-    // rate limit, refusal, max_tokens) are delivered as a trailing %%%ERROR%%%
-    // sentinel that the client splits out and surfaces.
-    const stream = new ReadableStream({
-        async start(controller) {
-            try {
-                const s = client.messages.stream({
-                    model:         'claude-sonnet-4-6',
-                    max_tokens:    32000,
-                    thinking:      { type: 'adaptive' },
-                    output_config: { effort: 'low' },
-                    system:   [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
-                    messages: [{ role: 'user', content: `Convert this Mongolian math exam PDF text to LaTeX:\n\n${text}` }],
-                })
+    const client = new Anthropic({ apiKey })
 
-                for await (const event of s) {
-                    if (event.type === 'content_block_delta' && event.delta.type === 'text_delta')
-                        controller.enqueue(encoder.encode(event.delta.text))
-                }
+    try {
+        const s = client.messages.stream({
+            model:         'claude-sonnet-4-6',
+            max_tokens:    32000,
+            thinking:      { type: 'adaptive' },
+            output_config: { effort: 'low' },
+            system:   [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
+            messages: [{ role: 'user', content: `Convert this Mongolian math exam PDF text to LaTeX:\n\n${text}` }],
+        })
 
-                const message = await s.finalMessage()
-                if (message.stop_reason === 'max_tokens')
-                    controller.enqueue(encoder.encode('\n\n%%%ERROR%%% The exam was too long to convert in one pass. Try splitting the PDF.'))
-                else if (message.stop_reason === 'refusal')
-                    controller.enqueue(encoder.encode('\n\n%%%ERROR%%% Claude declined to process this content.'))
-            } catch (err) {
-                controller.enqueue(encoder.encode(`\n\n%%%ERROR%%% ${err?.message || 'Conversion failed.'}`))
-            } finally {
-                controller.close()
-            }
-        },
-    })
+        for await (const event of s) {
+            if (event.type === 'content_block_delta' && event.delta.type === 'text_delta')
+                res.write(event.delta.text)
+        }
 
-    return new Response(stream, {
-        headers: {
-            'Content-Type':  'text/plain; charset=utf-8',
-            'Cache-Control': 'no-cache, no-transform',
-        },
-    })
+        const message = await s.finalMessage()
+        if (message.stop_reason === 'max_tokens')
+            res.write('\n\n%%%ERROR%%% The exam was too long to convert in one pass. Try splitting the PDF.')
+        else if (message.stop_reason === 'refusal')
+            res.write('\n\n%%%ERROR%%% Claude declined to process this content.')
+    } catch (err) {
+        res.write(`\n\n%%%ERROR%%% ${err?.message || 'Conversion failed.'}`)
+    }
+
+    res.end()
 }
