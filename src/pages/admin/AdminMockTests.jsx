@@ -1,11 +1,157 @@
 import { useState, useEffect } from 'react'
 import { Trash2, RefreshCw, Pencil, Save, X, PlusCircle } from 'lucide-react'
+import katex from 'katex'
+import 'katex/dist/katex.min.css'
 import { supabase } from '@/lib/supabase'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { QuestionEditor, SecondProblemEditor } from '@/components/admin/ExamEditorComponents'
+import { SecondProblemEditor } from '@/components/admin/ExamEditorComponents'
+
+// ── Math preview helpers ───────────────────────────────────────────────────────
+
+function renderMath(text) {
+    if (!text) return null
+    const parts = text.split(/(\$\$[\s\S]+?\$\$|\$[^$\n]+?\$)/g)
+    return parts.map((part, i) => {
+        if (part.startsWith('$$') && part.endsWith('$$')) {
+            const html = katex.renderToString(part.slice(2, -2), { throwOnError: false, displayMode: true })
+            return <span key={i} dangerouslySetInnerHTML={{ __html: html }} />
+        }
+        if (part.startsWith('$') && part.endsWith('$')) {
+            const html = katex.renderToString(part.slice(1, -1), { throwOnError: false, displayMode: false })
+            return <span key={i} dangerouslySetInnerHTML={{ __html: html }} />
+        }
+        return part
+    })
+}
+
+function LaTeXField({ value, onChange, placeholder, rows = 2, disabled }) {
+    const hasLatex = value && value.includes('$')
+    return (
+        <div className="flex flex-col gap-1">
+            <textarea
+                value={value}
+                onChange={e => onChange(e.target.value)}
+                placeholder={placeholder}
+                rows={rows}
+                disabled={disabled}
+                spellCheck={false}
+                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-[#E75234] disabled:opacity-50"
+            />
+            {hasLatex && (
+                <div className="px-3 py-2 bg-[#F5DAC6]/30 border border-[#E75234]/20 rounded-lg text-sm leading-relaxed text-gray-800">
+                    {renderMath(value)}
+                </div>
+            )}
+        </div>
+    )
+}
+
+function LaTeXInput({ value, onChange, placeholder, disabled }) {
+    const hasLatex = value && value.includes('$')
+    return (
+        <div className="flex flex-col gap-0.5">
+            <input
+                type="text"
+                value={value}
+                onChange={e => onChange(e.target.value)}
+                placeholder={placeholder}
+                disabled={disabled}
+                spellCheck={false}
+                className="flex-1 text-sm border border-gray-200 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#E75234] disabled:opacity-50"
+            />
+            {hasLatex && (
+                <div className="px-2 py-1 bg-[#F5DAC6]/30 border border-[#E75234]/20 rounded-md text-sm text-gray-800">
+                    {renderMath(value)}
+                </div>
+            )}
+        </div>
+    )
+}
+
+// ── Question card (same UI as AdminImport manual entry) ────────────────────────
+
+function QuestionCard({ question, idx, onChange, onRemove, disabled }) {
+    const q   = question
+    const set = (field, val) => onChange({ ...q, [field]: val })
+
+    return (
+        <div className="border border-gray-200 rounded-xl p-4 bg-white shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-[#2760A6]">Q{idx + 1}</span>
+                    <div className="flex rounded-lg overflow-hidden border border-gray-200 text-xs font-semibold">
+                        <button type="button" onClick={() => set('type', 'mc')} disabled={disabled}
+                            className={`px-2.5 py-1 transition-colors ${q.type !== 'text' ? 'bg-[#E75234] text-white' : 'bg-white text-gray-400 hover:bg-gray-50'}`}
+                        >A–E</button>
+                        <button type="button" onClick={() => set('type', 'text')} disabled={disabled}
+                            className={`px-2.5 py-1 transition-colors ${q.type === 'text' ? 'bg-[#E75234] text-white' : 'bg-white text-gray-400 hover:bg-gray-50'}`}
+                        >Text</button>
+                    </div>
+                </div>
+                <button onClick={onRemove} disabled={disabled}
+                    className="text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50">
+                    <Trash2 size={15} />
+                </button>
+            </div>
+
+            <div className="mb-3">
+                <LaTeXField
+                    value={q.text}
+                    onChange={val => set('text', val)}
+                    placeholder="Question text — use $LaTeX$ for math"
+                    rows={2}
+                    disabled={disabled}
+                />
+            </div>
+
+            {q.type !== 'text' && (
+                <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
+                        {['A', 'B', 'C', 'D', 'E'].map(letter => (
+                            <div key={letter} className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-gray-400 w-4">{letter}</span>
+                                <LaTeXInput
+                                    value={q[`label${letter}`] || ''}
+                                    onChange={val => set(`label${letter}`, val)}
+                                    placeholder={`Option ${letter}`}
+                                    disabled={disabled}
+                                />
+                            </div>
+                        ))}
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium text-gray-600">Answer:</span>
+                        <select
+                            value={q.answer}
+                            onChange={e => set('answer', e.target.value)}
+                            disabled={disabled}
+                            className="text-sm border border-gray-200 rounded-md px-2 py-1 focus:outline-none focus:ring-1 focus:ring-[#E75234] disabled:opacity-50"
+                        >
+                            <option value="">— select —</option>
+                            {['A', 'B', 'C', 'D', 'E'].map(l => <option key={l} value={l}>{l}</option>)}
+                        </select>
+                    </div>
+                </>
+            )}
+
+            {q.type === 'text' && (
+                <div className="flex items-start gap-2">
+                    <span className="text-xs font-medium text-gray-600 mt-2">Answer:</span>
+                    <LaTeXField
+                        value={q.answer}
+                        onChange={val => set('answer', val)}
+                        placeholder="Enter the answer — use $LaTeX$ for math"
+                        rows={2}
+                        disabled={disabled}
+                    />
+                </div>
+            )}
+        </div>
+    )
+}
 
 // ── Edit view ─────────────────────────────────────────────────────────────────
 
@@ -121,16 +267,20 @@ function EditView({ test, onBack }) {
 
             {section === 'mc' && (
                 <>
-                    <div className="flex flex-col gap-3">
+                    <div className="space-y-4 mb-4">
                         {questions.map((q, i) => (
-                            <QuestionEditor key={q.id} question={q}
-                                onChange={u => updateQuestion(i, u)}
+                            <QuestionCard
+                                key={q.id}
+                                question={q}
+                                idx={i}
+                                onChange={updated => updateQuestion(i, updated)}
                                 onRemove={() => removeQuestion(i)}
-                                pathPrefix={pathPrefix} />
+                                disabled={saving}
+                            />
                         ))}
                     </div>
                     <button type="button" onClick={addQuestion} disabled={saving}
-                        className="flex items-center gap-2 text-sm text-[#2760A6] hover:text-[#1a4a80] font-medium mt-4 mb-2 disabled:opacity-50 transition-colors">
+                        className="flex items-center gap-2 text-sm text-[#2760A6] hover:text-[#1a4a80] font-medium mb-6 disabled:opacity-50 transition-colors">
                         <PlusCircle size={16} /> Add Question
                     </button>
                 </>
@@ -170,10 +320,10 @@ function EditView({ test, onBack }) {
 // ── New test form ─────────────────────────────────────────────────────────────
 
 function NewTestForm({ onCreated }) {
-    const [title,   setTitle]   = useState('')
-    const [desc,    setDesc]    = useState('')
-    const [saving,  setSaving]  = useState(false)
-    const [error,   setError]   = useState('')
+    const [title,  setTitle]  = useState('')
+    const [desc,   setDesc]   = useState('')
+    const [saving, setSaving] = useState(false)
+    const [error,  setError]  = useState('')
 
     async function handleCreate() {
         if (!title.trim()) { setError('Title is required.'); return }
