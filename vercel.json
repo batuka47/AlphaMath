@@ -4,6 +4,7 @@
   "framework": "vite",
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
   "functions": {
+    "api/pdf-to-latex.js":  { "maxDuration": 300 },
     "api/marker-submit.js": { "maxDuration": 60 },
     "api/marker-result.js": { "maxDuration": 60 }
   }

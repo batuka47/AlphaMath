@@ -88,6 +88,7 @@ export default async function handler(req, res) {
     res.setHeader('Cache-Control', 'no-cache, no-transform')
     res.setHeader('X-Accel-Buffering', 'no')
     res.status(200)
+    res.flushHeaders()
 
     const client = new Anthropic({ apiKey })
 
