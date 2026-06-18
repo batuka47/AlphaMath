@@ -26,6 +26,9 @@ import AdminBookmarks from './pages/admin/AdminBookmarks'
 import AdminImport    from './pages/admin/AdminImport'
 import AdminExams     from './pages/admin/AdminExams'
 import AdminLatex     from './pages/admin/AdminLatex'
+import AdminMockTests from './pages/admin/AdminMockTests'
+import MockTest       from './pages/MockTest'
+import MockResult     from './pages/MockResult'
 
 function App() {
   return (
@@ -36,8 +39,10 @@ function App() {
         <Routes>
           <Route path="/"                  element={<Home />} />
           <Route path="/EYSH"              element={<EYSH />} />
-          <Route path="/EYSH/:year"        element={<EYSHTest />} />
-          <Route path="/EYSH/:year/Result" element={<Result />} />
+          <Route path="/EYSH/:year"             element={<EYSHTest />} />
+          <Route path="/EYSH/:year/Result"      element={<Result />} />
+          <Route path="/EYSH/mock/:id"          element={<MockTest />} />
+          <Route path="/EYSH/mock/:id/Result"   element={<MockResult />} />
           <Route path="/SAT"               element={<SAT />} />
           <Route path="/SAT/guidelines"    element={<SAT />} />
           <Route path="/Theory"            element={<Theory />} />
@@ -62,6 +67,7 @@ function App() {
             <Route path="import"          element={<AdminImport />} />
             <Route path="exams"           element={<AdminExams />} />
             <Route path="latex"           element={<AdminLatex />} />
+            <Route path="mock-tests"      element={<AdminMockTests />} />
           </Route>
 
           <Route path="*"                  element={<Home />} />

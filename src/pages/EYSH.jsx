@@ -1,10 +1,21 @@
+import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 import MaterialChoose from '../components/materialChoose'
 import { useTasks } from '../lib/TaskContext'
+import { supabase } from '../lib/supabase'
 
 function EYSH() {
     const taskData = useTasks()
+    const [mockTests, setMockTests] = useState([])
+
+    useEffect(() => {
+        supabase.from('mock_tests')
+            .select('id, title, description, problem, second_problem, created_at')
+            .order('created_at', { ascending: true })
+            .then(({ data }) => setMockTests(data || []))
+    }, [])
 
     // Build a map: year -> Set of available variants
     const availableMap = {}
@@ -57,6 +68,46 @@ function EYSH() {
                     ))}
                 </div>
             </div>
+
+            {/* Жишиг тест */}
+            {mockTests.length > 0 && (
+                <div className="px-6 sm:px-12 lg:px-20 pb-12">
+                    <h2 className="text-xl font-extrabold mb-6 text-gray-800">Жишиг тест</h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {mockTests.map(test => {
+                            const qCount  = (test.problem || []).length
+                            const spCount = (test.second_problem || []).length
+                            return (
+                                <Link
+                                    key={test.id}
+                                    to={`/EYSH/mock/${test.id}`}
+                                    className="flex w-full flex-row rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-shadow bg-white"
+                                >
+                                    <div className="w-1 bg-gradient-to-b from-[#E75234] to-[#2760A6] flex-shrink-0" />
+                                    <div className="flex-1 px-5 py-4 flex flex-col gap-1">
+                                        <h3 className="font-bold text-base text-gray-800">{test.title}</h3>
+                                        {test.description && (
+                                            <p className="text-xs text-gray-500">{test.description}</p>
+                                        )}
+                                        <div className="flex gap-2 mt-1 flex-wrap">
+                                            {qCount > 0 && (
+                                                <span className="text-xs bg-[#F5DAC6] text-[#E75234] font-bold px-2 py-0.5 rounded-full">
+                                                    {qCount} сонгох
+                                                </span>
+                                            )}
+                                            {spCount > 0 && (
+                                                <span className="text-xs bg-blue-50 text-[#2760A6] font-bold px-2 py-0.5 rounded-full">
+                                                    {spCount} задгай
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                </Link>
+                            )
+                        })}
+                    </div>
+                </div>
+            )}
 
             {/* Tips */}
             <div className="px-6 sm:px-12 lg:px-20 pb-20">

@@ -10,6 +10,7 @@ import {
   ArrowLeft,
   LogOut,
   Sigma,
+  FlaskConical,
 } from 'lucide-react'
 import { useAuth } from '@/lib/AuthContext'
 import { supabase } from '@/lib/supabase'
@@ -24,7 +25,8 @@ const NAV = [
   { to: '/admin/users',     label: 'Users',        icon: Users },
   { to: '/admin/results',   label: 'Test Results', icon: ClipboardList },
   { to: '/admin/bookmarks', label: 'Bookmarks',    icon: Bookmark },
-  { to: '/admin/latex',     label: 'LaTeX Editor', icon: Sigma },
+  { to: '/admin/latex',      label: 'LaTeX Editor', icon: Sigma },
+  { to: '/admin/mock-tests', label: 'Жишиг тест',  icon: FlaskConical },
 ]
 
 export default function AdminLayout() {
