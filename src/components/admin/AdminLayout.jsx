@@ -4,12 +4,10 @@ import {
   LayoutDashboard,
   Users,
   ClipboardList,
-  Bookmark,
   FileUp,
   BookMarked,
   ArrowLeft,
   LogOut,
-  Sigma,
   FlaskConical,
 } from 'lucide-react'
 import { useAuth } from '@/lib/AuthContext'
@@ -19,14 +17,12 @@ import { Separator } from '@/components/ui/separator'
 import logo from '@/assets/logo.svg'
 
 const NAV = [
-  { to: '/admin',           label: 'Overview',     icon: LayoutDashboard, end: true },
-  { to: '/admin/import',    label: 'Add Exam',     icon: FileUp },
-  { to: '/admin/exams',     label: 'Manage Exams', icon: BookMarked },
-  { to: '/admin/users',     label: 'Users',        icon: Users },
-  { to: '/admin/results',   label: 'Test Results', icon: ClipboardList },
-  { to: '/admin/bookmarks', label: 'Bookmarks',    icon: Bookmark },
-  { to: '/admin/latex',      label: 'LaTeX Editor', icon: Sigma },
+  { to: '/admin',            label: 'Overview',     icon: LayoutDashboard, end: true },
+  { to: '/admin/import',     label: 'Add',          icon: FileUp },
+  { to: '/admin/exams',      label: 'Manage Exams', icon: BookMarked },
   { to: '/admin/mock-tests', label: 'Жишиг тест',  icon: FlaskConical },
+  { to: '/admin/users',      label: 'Users',        icon: Users },
+  { to: '/admin/results',    label: 'Test Results', icon: ClipboardList },
 ]
 
 export default function AdminLayout() {

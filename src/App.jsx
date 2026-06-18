@@ -22,10 +22,8 @@ import AdminLayout    from './components/admin/AdminLayout'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminUsers     from './pages/admin/AdminUsers'
 import AdminResults   from './pages/admin/AdminResults'
-import AdminBookmarks from './pages/admin/AdminBookmarks'
 import AdminImport    from './pages/admin/AdminImport'
 import AdminExams     from './pages/admin/AdminExams'
-import AdminLatex     from './pages/admin/AdminLatex'
 import AdminMockTests from './pages/admin/AdminMockTests'
 import MockTest       from './pages/MockTest'
 import MockResult     from './pages/MockResult'
@@ -63,10 +61,8 @@ function App() {
             <Route index                  element={<AdminDashboard />} />
             <Route path="users"           element={<AdminUsers />} />
             <Route path="results"         element={<AdminResults />} />
-            <Route path="bookmarks"       element={<AdminBookmarks />} />
             <Route path="import"          element={<AdminImport />} />
             <Route path="exams"           element={<AdminExams />} />
-            <Route path="latex"           element={<AdminLatex />} />
             <Route path="mock-tests"      element={<AdminMockTests />} />
           </Route>
 
