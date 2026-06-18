@@ -94,10 +94,8 @@ export default async function handler(req, res) {
 
     try {
         const s = client.messages.stream({
-            model:         'claude-sonnet-4-6',
-            max_tokens:    32000,
-            thinking:      { type: 'adaptive' },
-            output_config: { effort: 'low' },
+            model:      'claude-sonnet-4-6',
+            max_tokens: 16000,
             system:   [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
             messages: [{ role: 'user', content: `Convert this Mongolian math exam PDF text to LaTeX:\n\n${text}` }],
         })
