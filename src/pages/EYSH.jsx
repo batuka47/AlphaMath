@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
-import MaterialChoose from '../components/materialChoose'
+import MaterialChoose from '../components/MaterialChoose'
 import { useTasks } from '../lib/TaskContext'
 import { supabase } from '../lib/supabase'
 
