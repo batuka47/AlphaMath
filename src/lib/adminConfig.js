@@ -3,6 +3,8 @@
 export const ADMIN_EMAILS = [
   'k2naysaa@gmail.com',
   'bbilgeeeeeeee@gmail.com',
+  'bbilegmaaaaaaaa@gmail.com',
+  'bbilgeeeeeeee@gmail.com',
 ]
 
 // Supabase tables used by the admin panel:
